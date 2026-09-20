@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="local-token" content="__LOCAL_TOKEN__">
+  <title>羽球训练家 · Badminton Quest</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23cc4050' stroke='%23222c3b' stroke-width='3'/%3E%3Cpath d='M2 16h28' stroke='%23222c3b' stroke-width='4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23fff8e8' stroke='%23222c3b' stroke-width='3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/dashboard.css"><script src="/app.js" defer></script><script src="/automation.js" defer></script><script src="/login.js" defer></script>
+</head>
+<body>
+<div class="app-shell">
+  <header class="masthead">
+    <div class="brand"><div class="pokeball" aria-hidden="true"></div><div><h1>羽球训练家</h1><p>BADMINTON QUEST</p></div></div>
+    <p class="brand-motto">更好的自己，<br>总在下一场。</p>
+    <div class="header-scene art" data-crop="603,10,714,109" aria-hidden="true"></div>
+    <div class="header-right"><p>打羽毛球<br>收集更好的日常！</p><button id="session-pill" class="connection" title="检查当前登录">● 登录待检查</button></div>
+  </header>
+  <div class="workspace">
+    <aside class="sidebar">
+      <div class="trainer art" data-crop="27,158,179,171" role="img" aria-label="戴红帽子的像素训练家"></div>
+      <h2>训练家</h2><p class="trainer-sub"><span class="level">Lv.1</span> 热爱羽球的你</p>
+      <div class="trainer-quote">每一次挥拍，<br>都是向更好的自己<br>出发！<span class="quote-notch"></span></div>
+      <nav aria-label="主菜单">
+        <button class="nav-item active" data-view="explore"><span>▧</span>场地探索<b>›</b></button>
+        <button class="nav-item" data-view="automation"><span>⏰</span>自动预约<b>›</b></button>
+        <button class="nav-item" data-view="records"><span>▤</span>我的预约<b>›</b></button>
+        <button class="nav-item" data-view="orders"><span>▣</span>订单记录<b>›</b></button>
+        <button class="nav-item" data-view="settings"><span>⚙</span>登录设置<b>›</b></button>
+      </nav>
+      <div class="sidebar-sign art" data-crop="11,777,212,197" aria-hidden="true"></div>
+      <small class="local-label">LOCAL EDITION · v0.5</small>
+    </aside>
+    <main id="explore-view" class="explore-view">
+      <section class="welcome pixel-panel"><span class="shuttle" aria-hidden="true">🏸</span><div><h2>今天，去打羽毛球吧！</h2><p>球不只是一项运动，更是一场属于自己的冒险。</p></div></section>
+      <div class="map-toolbar"><div class="gym-tabs" role="tablist" aria-label="选择场馆"><button class="active" role="tab" aria-selected="true" data-group="main">主馆</button><button role="tab" aria-selected="false" data-group="annex">副馆</button><button role="tab" aria-selected="false" data-group="tianyou">天佑</button></div><button id="refresh" class="text-button">↻ 刷新状态</button></div>
+      <section class="gym-stage" aria-label="羽毛球场馆地图">
+        <div class="map-courts" id="map-courts"></div>
+        <div class="map-caption"><span id="map-caption">正在载入场地目录…</span><span>场地示意图</span></div>
+      </section>
+      <div class="map-legend"><span><i class="legend-dot free"></i>可预约</span><span><i class="legend-dot occupied"></i>已占用</span><span><i class="legend-dot unknown"></i>未开放 / 待查询</span><span id="sync-time">尚未查询网站</span></div>
+      <section class="dialogue pixel-panel" aria-live="polite"><div class="mascot art" data-crop="315,840,170,109" role="img" aria-label="拿着球拍的皮卡丘"></div><div><h3 id="dialogue-title">准备好了吗，训练家？</h3><p id="dialogue-text">选好场地，开启你的下一场冒险！</p></div><span class="dialogue-arrow" aria-hidden="true">▼</span></section>
+      <p class="data-note">网站实时查询 · 空闲时段仍须通过账号额度等校验 · 每 60 秒更新</p>
+    </main>
+    <section id="automation-view" class="automation-view" hidden>
+      <div class="auto-center">
+        <header class="auto-welcome pixel-panel"><span class="auto-alarm">⏰</span><div><h2>把下一场，交给时间。</h2><p>提前设好目标，到点出发；没有空位，就继续候补。</p></div><button id="task-list-open" class="button compact">▤ 任务列表 <b id="task-count">0</b></button></header>
+        <form id="auto-form" class="auto-form pixel-panel">
+          <header class="auto-form-title"><h2>▤ 新建自动预约任务</h2><div class="mode-switch" aria-label="预约模式"><button type="button" data-mode="scheduled">定时预约</button><button type="button" data-mode="watch">立即候补</button><button type="button" data-mode="scheduled_watch" class="active">定时＋候补</button></div></header>
+          <section class="auto-section"><h3><span>01</span>你想什么时候打球？</h3><div class="auto-playing"><label>预约日期<input id="auto-date" type="date" required></label><label>开始时间<input id="auto-start" type="time" required></label><label>结束时间<input id="auto-end" type="time" required></label><p class="auto-hint">❕ 未开放也能提前设置<br>开放后核对网站实际时段</p></div></section>
+          <section class="auto-section candidates-section"><h3><span>02</span>候选场地 · 按顺序优先</h3><div id="auto-candidates" class="auto-candidates"></div><div class="candidate-add"><select id="auto-court-add" aria-label="新增候选场地"></select><button type="button" id="auto-add" class="button compact">＋ 添加</button><small>只约成功一块，其余候选立即停止</small></div></section>
+          <section class="auto-section"><h3><span>03</span>什么时候开始行动？</h3><div class="auto-timing"><label>开始执行<input id="auto-run" type="datetime-local" step="1" required></label><label>候补截止<input id="auto-until" type="datetime-local" step="1" required></label><label>查询间隔<select id="auto-interval"><option value="30">30 秒</option><option value="60">60 秒</option><option value="120">2 分钟</option><option value="300">5 分钟</option></select></label><label>时区<span class="time-zone">北京时间 UTC+8</span></label></div></section>
+          <section class="auto-section auto-payment"><h3><span>04</span>预约成功后</h3><div class="auto-payment-row"><label class="payment-toggle"><input id="auto-pay" type="checkbox"><span class="switch"></span>自动使用校园卡支付</label><label class="amount-label">金额上限 <input id="auto-amount" type="number" min="0.01" step="0.01" placeholder="¥ 金额" disabled></label><small>按实际订单金额支付，超出上限不付款。</small></div></section>
+          <footer class="auto-actions"><button type="button" id="auto-save" class="button compact">保存草稿</button><span id="auto-save-status" role="status"></span><button id="auto-enable" type="submit" class="button primary">确认并启用任务 ›</button></footer>
+        </form>
+        <section class="auto-dialogue dialogue pixel-panel"><div class="mascot art" data-crop="315,840,170,109" aria-hidden="true"></div><div><h3>目标先选好，机会来了就出发！</h3><p>查询可重试，结果未知的预约和支付先核实。</p></div><span class="dialogue-arrow">▼</span></section>
+      </div>
+      <aside class="auto-side">
+        <section class="login-monitor pixel-panel"><h2>♧ 登录维护 <span>❧</span></h2><div id="auto-health-state" class="health-state">○ 尚未检查</div><dl><div><dt>会话维护</dt><dd>启用后每 5 分钟检查</dd></div><div><dt>最近检查</dt><dd id="auto-health-time">—</dd></div><div><dt>最近续期</dt><dd id="auto-renew-time">尚无续期记录</dd></div><div><dt>完整重新登录</dt><dd class="amber">需本人登录</dd></div></dl><p>统一认证失效时，到登录设置重新登录。</p></section>
+        <section class="task-preview pixel-panel"><header><h2>▤ <span id="preview-title">任务预览</span></h2><span id="auto-state" class="badge">尚未启用</span></header><div class="preview-details"><strong id="preview-playing">请选择目标时间</strong><p id="preview-courts">选择候选场地</p><p id="preview-run">—</p><p id="preview-until">—</p><p>⚑ 预约成功一次即结束</p></div><ol id="auto-progress" class="auto-progress"><li>等待开始</li><li>查询 / 候补</li><li>提交预约</li><li>查单 / 按设置支付</li><li>任务结束</li></ol><div class="task-live" id="auto-live" role="status">任务未启用，不会自动提交。</div><div class="monitor-actions"><button id="auto-new" class="text-button">＋ 新任务</button><button id="auto-cancel" class="text-button" hidden>停止任务</button></div><p class="runtime-note">◷ 后台需保持运行，电脑休眠期间无法执行。</p></section>
+      </aside>
+    </section>
+    <aside id="booking-panel" class="booking-panel pixel-panel">
+      <div class="panel-title"><span>▤</span><h2>本次冒险</h2></div>
+      <div class="booking-body">
+        <div class="section-label"><h3>选择场地</h3><span id="court-count"></span></div>
+        <div class="selected-court"><div class="court-icon"><i></i></div><div><h3 id="selected-name">载入中…</h3><p id="selected-location">等待场地目录</p><div class="mini-health"></div></div></div>
+        <label class="sr-only" for="court-select">场地列表</label><select id="court-select"></select>
+        <div class="section-label"><h3>选择日期</h3><label class="date-input-label"><input id="date-input" type="date" aria-label="预约日期"></label></div>
+        <div id="date-strip" class="date-strip" aria-label="日期快捷选择"></div>
+        <div class="section-label"><h3>选择时间段</h3><span id="slot-source">等待实时查询</span></div>
+        <div id="slots" class="slots" aria-live="polite"><div class="empty">正在连接道馆…</div></div>
+        <div class="section-label fee-heading"><h3>费用</h3><span>人民币</span></div>
+        <div class="fee-box"><span>▣</span><strong id="price">查单后显示</strong><span id="price-unit">—</span></div>
+        <label class="payment-toggle"><input id="pay-toggle" type="checkbox"><span class="switch"></span><span>预约后使用校园卡支付</span></label>
+        <button id="book" class="button primary" disabled>确认预约 <span>›</span></button>
+        <button id="check" class="button secondary" disabled>⌕ 检查场地</button>
+        <p class="booking-hint" id="booking-hint">选择场地、日期与时段后出发。</p>
+      </div>
+    </aside>
+    <section id="secondary-view" class="secondary-view pixel-panel" hidden>
+      <header><div><p class="eyebrow" id="secondary-eyebrow">TRAINER JOURNAL</p><h2 id="secondary-title">我的预约</h2></div><button id="reload-secondary" class="button compact">↻ 刷新</button></header>
+      <div id="secondary-content"></div>
+    </section>
+  </div>
+  <footer class="statusbar"><span>● <b id="footer-status">本地运行 · 凭据保存在本机</b></span><span>① 创建预约 <i>›</i> ② 获取订单 <i>›</i> ③ 校园卡支付</span><button id="save-config">保存当前选择 ♡</button></footer>
+</div>
+<dialog id="confirm-dialog" class="pixel-panel"><form method="dialog"><button class="dialog-close" aria-label="关闭">×</button><p class="eyebrow">READY, TRAINER?</p><h2 id="confirm-title">确认本次预约</h2><div id="confirm-details"></div><p class="confirm-note" id="confirm-note"></p><div class="dialog-actions"><button value="cancel" class="button secondary">再看看</button><button id="confirm-submit" value="submit" class="button primary">确认提交</button></div></form></dialog>
+<dialog id="result-dialog" class="pixel-panel"><form method="dialog"><button class="dialog-close" aria-label="关闭">×</button><p class="eyebrow">ADVENTURE LOG</p><h2 id="result-title">操作结果</h2><div id="result-content"></div><button class="button primary">知道了</button></form></dialog>
+<div id="toast" role="status" hidden></div>
+<dialog id="task-list-dialog" class="pixel-panel"><button class="dialog-close" id="task-list-close" aria-label="关闭任务列表">×</button><p class="eyebrow">TRAINER MISSIONS</p><h2>自动预约任务</h2><p class="task-list-note">任务保存在本机；停止任务不会取消已创建的预约。</p><div id="task-list-body"></div></dialog>
+</body></html>

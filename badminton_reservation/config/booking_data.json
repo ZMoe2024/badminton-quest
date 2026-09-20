@@ -1,0 +1,22 @@
+{
+  "applyRemark": "",
+  "infoId": "",
+  "occupyId": "",
+  "occupyTimeStart": "",
+  "occupyTimeEnd": "",
+  "occupyType": "1",
+  "resUseType": "0",
+  "timeChooseType": "2",
+  "isInvite": "0",
+  "location": "",
+  "msgLeadTime": [],
+  "leaveUsers": [],
+  "auditUserIds": [],
+  "formManagePropertyValueList": [
+    {
+      "propertyId": "",
+      "propertyColumnCode": "LXDH",
+      "propertyValue": ""
+    }
+  ]
+}

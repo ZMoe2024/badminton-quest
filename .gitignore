@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.env.*
+!.env.example
+dist/
+*.log
+*.dpapi*
+*.keychain*
+badminton_reservation/config/*
+!badminton_reservation/config/credentials.example.json
+badminton_reservation/state/*
+!badminton_reservation/state/venues/
+badminton_reservation/state/venues/*
+!badminton_reservation/state/venues/badminton-courts.json
