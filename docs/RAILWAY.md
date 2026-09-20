@@ -9,18 +9,17 @@
    | 变量 | 值 |
    | --- | --- |
    | `RAILWAY_RUN_UID` | `0` |
-   | `QUEST_MAX_USERS` | `2`（免费内存先做两人试运行，实测后再调整） |
-   | `QUEST_INVITE_CODE` | 自己设置一串随机的注册邀请码，不要写进公开代码 |
+   | `QUEST_MAX_USERS` | `0`（开放注册，不限制注册人数；实际并发受资源限制） |
 
-   Railway 卷初始归 root 所有；入口仅调整 `/data` 的目录权限，随后降权为 `quest` 用户运行。主程序和 Chromium 不以 root 运行，也不会关闭浏览器 sandbox。
+   Railway 卷初始归 root 所有；入口仅调整 `/data` 的目录权限，随后降权为 `quest` 用户运行。主程序不以 root 运行；网页版不安装或启动浏览器。
 
 4. Settings → Networking → Generate Domain。程序读取 Railway 提供的域名和 `PORT`。生成域名后如未自动重新部署，执行 Redeploy。使用自定义域名时另设 `QUEST_ORIGIN=https://你的域名`。
-5. 保持单实例、单地区，不启用 Serverless/自动休眠，否则关闭网页后定时任务可能停下。部署日志与 `/healthz` 正常后打开网址，用邀请码注册，再登录自己的学校账号。
+5. 保持单实例、单地区，不启用 Serverless/自动休眠，否则关闭网页后定时任务可能停下。部署日志与 `/healthz` 正常后打开网址，直接注册，再手动导入自己的学校会话。
 
-浏览器登录全站同一时刻只开放一个窗口，降低小内存实例的峰值；其他人的普通任务仍分开执行。Chromium 登录窗口在结束/取消后清理，不常驻。首次先检查学校登录与实时场地，不要以网站能打开代替完整预约验收。
+网页版使用手动 Cookie / Token / currentUser 导入，详见 [会话导入步骤](WEB_DEPLOYMENT.md#手动获取会话)。Railway 运行环境曾拒绝 Chromium sandbox 初始化，因此已移除服务器浏览器依赖，减少镜像和内存占用。仅有网站能打开，不代表真实学校查询、预约或支付已验证。
 
 免费内存不足时会出现 OOM/重启；需要降低账号数量或改用更合适的运行环境。重启不能解决资源不足，也不能把失败当成预约成功。
 
-CLI 部署需要先 `railway login`。邀请码可以设在 Railway Variables 中，不需要把本机旧版的任何 Cookie、Token 或个人配置上传。GitHub 提交仅含程序和演示截图。
+CLI 部署需要先 `railway login`。注册不需要邀请码；不需要把本机旧版的任何 Cookie、Token 或个人配置上传。GitHub 提交仅含程序和演示截图。
 
 参考：[Railway 持久卷](https://docs.railway.com/volumes)、[健康检查与端口](https://docs.railway.com/deployments/healthchecks)、[环境变量](https://docs.railway.com/variables/reference)。

@@ -1,3 +1,4 @@
--r badminton_reservation/requirements.txt
+requests>=2.31,<3
+cryptography>=41
 Flask>=3.1,<4
 waitress>=3.0.2,<4

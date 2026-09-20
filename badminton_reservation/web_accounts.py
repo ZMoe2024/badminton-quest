@@ -15,7 +15,7 @@ def digest(value):
 
 
 class Accounts:
-    def __init__(self, path, limit=16):
+    def __init__(self, path, limit=0):
         self.path = Path(path)
         self.limit = limit
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -71,7 +71,7 @@ class Accounts:
         try:
             with self.connect() as db:
                 db.execute('BEGIN IMMEDIATE')
-                if db.execute('SELECT count(*) FROM users').fetchone()[0] >= self.limit:
+                if self.limit and db.execute('SELECT count(*) FROM users').fetchone()[0] >= self.limit:
                     raise ValueError('本站用户数量已达上限，请联系部署者')
                 db.execute('INSERT INTO users(id,name,password,created) VALUES(?,?,?,?)',
                            (uid, name.lower(), hashed, time.time()))

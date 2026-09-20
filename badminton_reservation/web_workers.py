@@ -17,24 +17,33 @@ def worker_main(connection, directory, key, database, uid, stop):
     from .runtime import initialize_user
     initialize_user(directory)
     from . import gui_server
-    from .automation import account_key
-    from .remote_login import RemoteLogin
+    from .web_credentials import prepare_credentials
     from .web_accounts import Accounts
     accounts = Accounts(database)
 
     class UserApplication(gui_server.Application):
         def __init__(self):
             super().__init__()
-            self.browser_login = RemoteLogin(self.lock,
-                lambda credentials: gui_server.authenticate(credentials=credentials), self.save_login)
+            self.browser_login._status('idle', '请在下方导入自己的学校登录凭据。')
 
         def save_login(self, credentials, status):
-            with accounts.school_binding(uid, account_key(credentials)):
+            # Bind to the token-checked username, not editable userId metadata.
+            username, _ = gui_server.expected_identity(credentials)
+            identity = hashlib.sha256(username.encode()).hexdigest()
+            with accounts.school_binding(uid, identity):
                 super().save_login(credentials, status)
 
         def action(self, data):
-            if data.get('action') == 'login-input':
-                return self.browser_login.input(data)
+            if data.get('action') in ('login-start', 'login-input'):
+                raise ValueError('网页版使用手动导入会话，请在登录设置填写自己的凭据')
+            if data.get('action') == 'import':
+                data = dict(data, credentials=prepare_credentials(data.get('credentials')))
+                result = super().action(data)
+                username, _ = gui_server.expected_identity(data['credentials'])
+                self.browser_login._status('success', '会话已验证并加密保存；可以刷新实时场地。',
+                    account=username[:2]+'****'+username[-2:],
+                    ssoAvailable=bool(data['credentials'].get('ssoCookies')))
+                return result
             return super().action(data)
 
         def confirm_once(self, data):

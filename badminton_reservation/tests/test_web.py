@@ -29,7 +29,7 @@ class WebsiteTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
         self.workers=FakeWorkers()
-        self.app=create_app(self.temp.name,'https://quest.test',workers=self.workers,invite='test-invitation')
+        self.app=create_app(self.temp.name,'https://quest.test',workers=self.workers)
         self.app.testing=True
         self.accounts=self.app.extensions['quest_accounts']
         self.a=self.app.test_client();self.b=self.app.test_client()
@@ -40,7 +40,7 @@ class WebsiteTests(unittest.TestCase):
     def get(self,client,path):return client.get(path,base_url='https://quest.test')
 
     def register(self,client,name):
-        r=self.post(client,'/auth/register',{'username':name,'password':'test-password-long','invite':'test-invitation'})
+        r=self.post(client,'/auth/register',{'username':name,'password':'test-password-long'})
         self.assertEqual(r.status_code,200)
         self.assertIn('HttpOnly',r.headers['Set-Cookie']);self.assertIn('Secure',r.headers['Set-Cookie'])
         return re.search(r'name="local-token" content="([^"]+)"',self.get(client,'/').text)[1]
@@ -59,10 +59,11 @@ class WebsiteTests(unittest.TestCase):
         self.assertEqual(result.json['owner'],a)
         self.assertEqual(self.post(self.a,'/api/action',{'action':'orders'},cb).status_code,403)
         self.assertEqual(self.post(self.a,'/api/action',{'action':'orders'},ca,'https://evil.test').status_code,403)
-        self.assertEqual(self.post(self.a,'/api/action',{'action':'import','credentials':{}},ca).status_code,400)
+        self.assertEqual(self.post(self.a,'/api/action',{'action':'import','credentials':{}},ca).status_code,200)
+        self.assertEqual(self.workers.calls[-1][0],a)
+        self.assertEqual(self.post(self.a,'/api/action',{'action':'login-start'},ca).status_code,400)
 
-    def test_invite_rate_limit_logout_and_password_rotation(self):
-        self.assertEqual(self.post(self.a,'/auth/register',{'username':'alice','password':'long-password','invite':'wrong'}).status_code,403)
+    def test_public_registration_rate_limit_logout_and_password_rotation(self):
         csrf=self.register(self.a,'alice')
         self.post(self.b,'/auth/login',{'username':'alice','password':'test-password-long'})
         r=self.post(self.a,'/api/password',{'old':'test-password-long','new':'replacement-password'},csrf)

@@ -16,7 +16,6 @@ def main():
     stamp=env/'requirements.sha256'
     if not stamp.exists() or stamp.read_text()!=fingerprint:
         subprocess.run([str(python),'-m','pip','install','-r',str(root/'requirements-web.txt')],check=True)
-        subprocess.run([str(python),'-m','playwright','install','--no-shell','chromium'],check=True)
         stamp.write_text(fingerprint)
     args=sys.argv[1:]
     if not args:args=['--open']

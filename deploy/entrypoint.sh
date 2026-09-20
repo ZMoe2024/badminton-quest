@@ -7,4 +7,4 @@ if [ "$(id -u)" = "0" ]; then
     chmod 700 /data
     exec gosu quest "$0" "$@"
 fi
-exec xvfb-run -a -s '-screen 0 1280x900x24 -nolisten tcp' python -m badminton_reservation.web_server --host 0.0.0.0 --data /data "$@"
+exec python -m badminton_reservation.web_server --host 0.0.0.0 --data /data "$@"

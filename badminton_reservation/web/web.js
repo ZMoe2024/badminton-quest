@@ -3,30 +3,43 @@ const originalFetch=window.fetch;
 window.fetch=async(...args)=>{const response=await originalFetch(...args);if(response.status===401&&String(args[0]).startsWith('/api/')){location.assign('/login');throw Error('网站登录已过期');}return response;};
 const renderLogin=window.LoginUI.render;
 window.LoginUI.render=()=>renderLogin()
- .replaceAll('本机','当前账号的服务器空间').replace('打开独立登录窗口，自己完成学校认证并进入预约首页。程序自动验证、加密保存会话，不读取日常浏览器的账号。','在下方远程窗口扫码或输入学校账号，完成后自动保存到你的独立账号空间。')
- .replace('不随发布包分享。独立登录窗口关闭后不保留浏览器资料。','仅供你的任务使用，登录结束会清理临时浏览器资料。')
- .replace(/<details>[\s\S]*?<\/details>/,'<h3>个人账号空间</h3><p>学校会话在服务器加密保存，不与其他使用者共享。首次绑定后，该网站账号只接受同一学校身份。</p>')
+ .replaceAll('本机','当前账号的服务器空间')
+ .replace('登录自己的学校账号','导入自己的学校会话')
+ .replace('打开独立登录窗口，自己完成学校认证并进入预约首页。程序自动验证、加密保存会话，不读取日常浏览器的账号。','先在学校预约网站登录，再填写下方凭据。验证通过后加密保存；不会自动预约或支付。')
+ .replace('id="school-login"','id="school-login" hidden')
+ .replace('学校认证彻底失效时需重新登录。登录完成不会自动启用任务或付款。','Cookie 或 Token 失效后需重新导入。仅导入预约网站 Cookie 不能保证自动续期或无人值守。')
+ .replace(/<details>[\s\S]*?<\/details>/,`<h3>连接学校预约网站</h3>
+ <p>在学校网站按 F12 → Network，选一条成功的请求，从 Request Headers 复制 Cookie 和 X-Access-Token 的值。</p>
+ <label for="manual-cookie">Cookie</label><textarea id="manual-cookie" rows="3" autocomplete="off" spellcheck="false" placeholder="粘贴完整 Cookie 值"></textarea>
+ <label for="manual-token">X-Access-Token</label><input id="manual-token" type="password" autocomplete="off" placeholder="Cookie 已含 token 时可留空">
+ <label for="manual-user">currentUser</label><textarea id="manual-user" rows="2" autocomplete="off" spellcheck="false" placeholder="Application → Local Storage → 学校网站 → currentUser 的值"></textarea>
+ <label for="manual-agent">User-Agent（可选，建议与原请求一致）</label><input id="manual-agent" autocomplete="off" placeholder="从同一请求的 Headers 复制">
+ <div class="manual-actions"><button class="button primary compact" id="manual-import">验证并保存</button><button class="button compact" id="manual-clear">清空</button></div>
+ <p id="manual-feedback" role="status"></p>
+ <details><summary>已有完整凭据 JSON？</summary><input type="file" id="manual-file" accept="application/json,.json"><button class="button compact" id="manual-file-import">导入文件并验证</button><p>支持 cookie / cookies、token、currentUser、userAgent，以及可选的 ssoCookies。仅在统一认证会话仍有效时才能尝试续期。</p></details>`)
+ .replace('不随发布包分享。独立登录窗口关闭后不保留浏览器资料。','仅供当前账号任务使用，验证失败不覆盖原会话。首次绑定后只接受同一学校身份。')
  .replace('不同电脑的任务不会自动同步。','不同设备登录同一网站账号即可查看。')
- .replace('你的本地冒险日志','你的冒险日志')+
- `<section class="remote-login pixel-panel" id="remote-login" hidden><header><div><h3>学校登录窗口</h3><p>由你操作学校页面。完成后自动关闭，不会自动预约或支付。</p></div><button class="button compact" id="remote-cancel">取消登录</button></header><p id="remote-hint" role="status">正在打开学校页面…</p><div class="remote-screen"><img id="school-screen" alt="学校登录页面，点击图片可操作；扫码请使用另一台设备" hidden draggable="false"></div><div class="remote-controls"><label for="school-text">输入到学校页面的当前选中框</label><div><input id="school-text" type="password" autocomplete="off" placeholder="先点图片中的输入框，再在此输入"><button id="remote-type" class="button compact">发送输入</button></div><div class="remote-keys"><button data-school-key="Tab">切换输入框</button><button data-school-key="Backspace">退格</button><button data-school-key="Enter">回车</button><button data-school-scroll="-1">向上滚动</button><button data-school-scroll="1">向下滚动</button></div></div></section>`;
-window.addEventListener('school-login-state',event=>{
- const d=event.detail,panel=$('#remote-login');if(!panel)return;
- panel.hidden=!d.active;
- const loginMessage=(d.message||'').replace('点击登录学校账号，在独立窗口完成认证。','点击登录学校账号，在下方学校页面完成认证。').replace('正在打开独立登录窗口，请在窗口中使用自己的学校账号。','正在打开学校页面，请在下方使用自己的学校账号。');
- d.message=loginMessage;
- $('#remote-hint').textContent=loginMessage;
- const image=$('#school-screen');image.hidden=!d.screen;
- if(d.screen)image.src=d.screen;else image.removeAttribute('src');
-});
-const sendInput=async values=>{try{await api('login-input',values);}catch(exc){toast(exc.message);}};
-document.addEventListener('click',event=>{
- const image=event.target.closest('#school-screen');
- if(image){const r=image.getBoundingClientRect();sendInput({kind:'click',x:(event.clientX-r.left)*1100/r.width,y:(event.clientY-r.top)*760/r.height});return;}
+ .replace('你的本地冒险日志','你的冒险日志');
+function clearManual(){for(const id of ['manual-cookie','manual-token','manual-user','manual-agent','manual-file']){const el=$('#'+id);if(el)el.value='';}}
+document.addEventListener('click',async event=>{
  const b=event.target.closest('button');if(!b)return;
- if(b.id==='remote-cancel')api('login-cancel').catch(exc=>toast(exc.message));
- if(b.id==='remote-type'){const input=$('#school-text');if(input.value){const text=input.value;input.value='';sendInput({kind:'text',text});}}
- if(b.dataset.schoolKey)sendInput({kind:'key',key:b.dataset.schoolKey});
- if(b.dataset.schoolScroll)sendInput({kind:'scroll',direction:Number(b.dataset.schoolScroll)});
+ if(b.id==='manual-clear')clearManual();
+ if(['manual-import','manual-file-import'].includes(b.id)){
+  const buttons=[$('#manual-import'),$('#manual-file-import')];buttons.forEach(x=>x.disabled=true);
+  const feedback=$('#manual-feedback');feedback.textContent='正在向学校验证，请稍候…';
+  try{
+   let credentials;
+   if(b.id==='manual-file-import'){
+    const file=$('#manual-file').files[0];if(!file)throw Error('请选择凭据 JSON 文件');
+    if(file.size>90000)throw Error('文件过大，请只导入凭据 JSON');
+    try{credentials=JSON.parse(await file.text());}catch{throw Error('文件不是有效的 JSON');}
+   }else credentials={cookie:$('#manual-cookie').value,token:$('#manual-token').value,currentUser:$('#manual-user').value,userAgent:$('#manual-agent').value};
+   await api('import',{credentials});clearManual();
+   feedback.textContent='验证成功，已加密保存。可回到场地探索刷新。';
+   await sessionCheck();await window.LoginUI.open();
+  }catch(exc){feedback.textContent=exc.message;}
+  finally{buttons.forEach(x=>x.disabled=false);}
+ }
  if(b.id==='web-logout'){
   b.disabled=true;fetch('/api/logout',{method:'POST',headers:{'X-Local-Token':token}}).then(r=>{if(!r.ok)throw Error('退出失败，请重试');location.assign('/login');}).catch(exc=>{toast(exc.message);b.disabled=false;});
  }

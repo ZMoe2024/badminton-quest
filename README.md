@@ -16,7 +16,7 @@ python start_web.py
 
 也可以双击 `Start-Web-Windows.bat`，或在 Mac 执行 `zsh Start-Web-macOS.command`。打开 `http://127.0.0.1:18880`，用 `.quest-data/invite-code.txt` 中的邀请码注册自己的账号，再进入「登录设置」绑定自己的学校账号。
 
-服务器部署提供 Docker Compose、HTTPS 反向代理配置及持久化数据卷。部署步骤、账号隔离、备份方式和已验证范围见 **[网页版部署说明](docs/WEB_DEPLOYMENT.md)**。当前代码不附带公开运行中的网站；真实服务器学校登录需在部署环境验证。
+服务器部署提供 Docker Compose、HTTPS 反向代理配置及持久化数据卷。部署步骤、账号隔离、备份方式和已验证范围见 **[网页版部署说明](docs/WEB_DEPLOYMENT.md)**。网页版公开注册，无需邀请码；学校会话由每位用户自行导入，真实查询需以云端验证结果为准。
 
 ![网页版登录入口](docs/screenshots/web-entry.png)
 

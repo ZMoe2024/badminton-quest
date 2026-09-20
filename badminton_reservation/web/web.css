@@ -16,3 +16,9 @@
 .web-mode .auto-progress li:before{top:12px}.web-mode .auto-progress li:not(:last-child):after{top:23px;bottom:-12px}
 }
 @media(max-width:650px){.web-mode .map-courts{grid-template-columns:repeat(4,minmax(0,1fr))!important;grid-template-rows:repeat(var(--mobile-map-rows,4),minmax(0,1fr));gap:8px;top:23%;bottom:14%}.web-mode .gym-stage{min-height:480px}.web-mode .court{min-height:0}.web-mode .court-status{font-size:10px;white-space:nowrap;writing-mode:horizontal-tb;top:10%;left:0;right:0;text-align:center}.web-mode .court-number{font-size:18px}.web-mode .nav-item{font-size:11px}}
+
+.web-mode .settings-card textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;background:#fffaf0;border:1px solid #b8ae98;border-radius:4px;padding:9px;font:12px monospace;color:#253044}.web-mode .settings-card input{max-width:100%;box-sizing:border-box}.manual-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.web-mode .settings-card p{overflow-wrap:anywhere}.web-mode #manual-feedback{min-height:22px}
+
+.web-mode .settings-grid{align-items:start;gap:16px}.web-mode .settings-card{padding:16px}.web-mode .settings-card p{font-size:12px;line-height:1.6;margin:8px 0 12px}.web-mode .settings-card h3{margin:0 0 10px;font-size:16px}.web-mode .settings-card label{display:block;margin:8px 0 5px}.web-mode .settings-card input{height:34px}.web-mode .settings-card:nth-child(4){display:none}.web-mode .settings-card .login-actions:has(button[hidden]){display:none}
+@media(min-width:1050px){.web-mode .settings-grid{grid-template-columns:1.15fr 1fr;grid-template-rows:auto 1fr}.web-mode .settings-card:nth-child(3){grid-column:1;grid-row:1/3}.web-mode .settings-card:nth-child(1){grid-column:2;grid-row:1}.web-mode .settings-card:nth-child(2){grid-column:2;grid-row:2}}
+@media(max-width:1049px){.web-mode .settings-grid{display:flex;flex-direction:column}.web-mode .settings-card{width:100%;box-sizing:border-box}.web-mode .settings-card:nth-child(3){order:-1}}

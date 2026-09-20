@@ -17,7 +17,7 @@ PUBLIC = {'/app.js','/automation.js','/login.js','/style.css','/dashboard.css',
 REMOTE = {'/web.css','/web.js','/auth.js'}
 ACTIONS = {'profile','save-profile','tasks','task-save','task-cancel','task-enable','orders',
            'save','session','renew','catalog','availability','records','check','book','order-status',
-           'pay','login-start','login-status','login-cancel','login-input'}
+           'pay','import','login-status','login-cancel'}
 
 
 def private_file(path, value):
@@ -27,7 +27,7 @@ def private_file(path, value):
     return path.read_text(encoding='utf-8').strip()
 
 
-def create_app(root, origin, *, workers=None, invite=None, max_users=16, allow_insecure=False):
+def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False):
     root = Path(root).resolve();root.mkdir(mode=0o700, parents=True, exist_ok=True)
     parsed = urlsplit(origin)
     if (parsed.scheme not in ('http','https') or not parsed.netloc or parsed.path or parsed.query or
@@ -40,7 +40,6 @@ def create_app(root, origin, *, workers=None, invite=None, max_users=16, allow_i
         raise ValueError('服务器密钥丢失，请恢复原 master.key；不会生成新密钥覆盖原数据')
     key = base64.urlsafe_b64decode(private_file(key_file, base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()))
     if len(key) != 32: raise ValueError('服务器密钥格式不正确')
-    invite = invite or os.environ.get('QUEST_INVITE_CODE') or private_file(root/'invite-code.txt', secrets.token_urlsafe(18))
     accounts = Accounts(root/'accounts.sqlite3', max_users)
     workers = workers or Workers(root, key, accounts)
     app = Flask(__name__, static_folder=None)
@@ -97,9 +96,6 @@ def create_app(root, origin, *, workers=None, invite=None, max_users=16, allow_i
             body=data()
             name,password=body.get('username'),body.get('password')
             if action=='register':
-                supplied=body.get('invite')
-                if not isinstance(supplied,str) or not secrets.compare_digest(supplied,invite):
-                    return jsonify(error='邀请码不正确，请向部署者获取'), 403
                 uid=accounts.register(name,password)
             else:
                 uid=accounts.login(name,password)
@@ -177,13 +173,13 @@ def main():
     parser.add_argument('--origin',default=os.environ.get('QUEST_ORIGIN') or
                         ('https://'+os.environ['RAILWAY_PUBLIC_DOMAIN'] if os.environ.get('RAILWAY_PUBLIC_DOMAIN') else None))
     parser.add_argument('--data',default=os.environ.get('QUEST_DATA','.quest-data'))
-    parser.add_argument('--max-users',type=int,default=int(os.environ.get('QUEST_MAX_USERS','16')))
+    parser.add_argument('--max-users',type=int,default=int(os.environ.get('QUEST_MAX_USERS','0')))
     parser.add_argument('--allow-insecure-lan',action='store_true')
     parser.add_argument('--open',action='store_true')
     args=parser.parse_args()
     if os.environ.get('RAILWAY_ENVIRONMENT_ID') and not os.environ.get('RAILWAY_VOLUME_MOUNT_PATH'):
         parser.error('请在 Railway 为服务挂载持久卷 /data，避免重启丢失账号和任务')
-    if not 1<=args.max_users<=100:parser.error('--max-users 必须为 1–100，需按机器内存规划')
+    if not 0<=args.max_users<=100000:parser.error('--max-users 必须为 0–100000，0 表示不限制注册人数')
     origin=args.origin or f'http://127.0.0.1:{args.port}'
     root=Path(args.data).resolve();root.mkdir(mode=0o700,parents=True,exist_ok=True)
     lease=(root/'server.lock').open('a+b')
@@ -202,7 +198,7 @@ def main():
     server=create_server(app,host=args.host,port=args.port,threads=16, max_request_body_size=100000,
                          expose_tracebacks=False,channel_timeout=200)
     print('羽球训练家网页版：'+origin,flush=True)
-    print('注册邀请码来源：'+('QUEST_INVITE_CODE 环境变量' if os.environ.get('QUEST_INVITE_CODE') else str(root/'invite-code.txt')),flush=True)
+    print('公开注册已开启；学校会话由每位用户自行导入。',flush=True)
     print('按 Ctrl+C 停止；网站退出登录不会停止已启用任务。',flush=True)
     workers.start()
     if args.open:
