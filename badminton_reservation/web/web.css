@@ -24,3 +24,7 @@
 @media(max-width:1049px){.web-mode .settings-grid{display:flex;flex-direction:column}.web-mode .settings-card{width:100%;box-sizing:border-box}.web-mode .settings-card:nth-child(3){order:-1}}
 
 .web-mode #manual-token,.web-mode #manual-agent{width:100%;background:#fffaf0;border:1px solid #b8ae98;border-radius:4px;padding:6px 9px;font:12px monospace;color:#253044}
+.web-mode .session-steps{margin:0 0 10px;padding-left:22px;font-size:12px;line-height:1.7}.web-mode .session-steps li{margin:5px 0}.web-mode .session-steps a{color:#a52f40;font-weight:bold}.web-mode .settings-card details{margin:10px 0}.web-mode .settings-card summary{font-size:12px;line-height:1.6;cursor:pointer}.web-mode #manual-json{min-height:82px}.web-mode #manual-complete-cookie{min-height:46px}.web-mode #manual-feedback:empty{display:none}.web-mode .manual-advanced{border-top:1px solid #d3c5aa;padding-top:8px}
+
+.web-mode .manual-actions a.button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}.web-mode #helper-guide{padding:8px 10px;background:#fff0cc;border:1px solid #d5b777;border-radius:4px}
+.web-mode .manual-actions .button{margin-top:0}.web-mode #booking-phone-status:empty{display:none}

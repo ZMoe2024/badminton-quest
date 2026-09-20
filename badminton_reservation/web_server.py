@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parent
 COOKIE = 'quest_session'
 PUBLIC = {'/app.js','/automation.js','/login.js','/style.css','/dashboard.css',
           '/assets/concept.png','/assets/gym.png'}
-REMOTE = {'/web.css','/web.js','/auth.js'}
+REMOTE = {'/web.css','/web.js','/auth.js','/login-helper.zip'}
 ACTIONS = {'profile','save-profile','tasks','task-save','task-cancel','task-enable','orders',
            'save','session','renew','catalog','availability','records','check','book','order-status',
            'pay','import','login-status','login-cancel'}

@@ -65,7 +65,7 @@ quest.example.com {
 部署后依次检查：
 
 1. 域名 `/healthz` 返回 `status: ok`，登录页可打开。
-2. 使用邀请码注册两个账号，分别登录，任务列表、订单和联系电话互不可见。
+2. 公开注册两个测试账号，分别登录，任务列表、订单和联系电话互不可见。
 3. 在「登录设置」打开学校页面，完成真实学校认证，保存本人的联系电话；检查会话和实时场地。
 4. 先保存一个未启用的任务草稿，重启服务后确认仍在。预约和支付需要另行明确确认后才提交。
 
@@ -78,7 +78,6 @@ quest.example.com {
 ```text
 /data/
   master.key                 # 服务器主密钥，必须与数据一起备份
-  invite-code.txt            # 注册邀请码
   accounts.sqlite3          # 网站账号、绑定身份、会话、已受理操作编号
   users/<随机账号ID>/
     config/                  # 加密学校会话、独立预约配置和联系电话
@@ -105,15 +104,23 @@ docker compose up -d --build
 - **访问地址不匹配 / 请求来源校验失败**：检查域名、`QUEST_ORIGIN` 和代理传入的 `Host` 是否相同，修改环境后重新创建容器。
 - **凭据导入失败**：检查 Cookie、Token 与 currentUser 来自同一次登录，检查有效期、DNS、服务器出口与学校防护限制。不要仅凭 HTTP 400 认定 Cookie 过期。
 - **待查询 / 查询失败**：先在登录设置检查学校会话，再刷新场地；学校没有返回有效结果时不会显示为可预约。
-- **多人同时失败**：检查服务器网络、资源与学校限制。邀请注册与请求有速率限制；代理后的认证限流默认按代理地址聚合，避免频繁反复尝试。
+- **多人同时失败**：检查服务器网络、资源与学校限制。注册、登录与请求有速率限制；代理后的认证限流默认按代理地址聚合，避免频繁反复尝试。
 - **GitHub Pages**：只提供静态页面，不能运行这套 Python 后台、账号库和预约调度器。
 
 参考：[Flask 的 Waitress 部署说明](https://flask.palletsprojects.com/en/stable/deploying/waitress/)。
 
-## 手动获取会话
+## 获取学校会话
 
-1. 在自己电脑的学校预约网站登录，F12 → Network，选择成功的学校 API 请求。
-2. Request Headers 中复制完整 Cookie、X-Access-Token；建议同时复制 User-Agent。
-3. Application → Local Storage → `https://resm.lzjtu.edu.cn`，复制 currentUser 的值。不要修改身份内容。
-4. 在网页版「登录设置」填写并验证；也支持对应字段的凭据 JSON 文件。成功后输入框清空，服务器仅保留加密文件。
-5. 只有额外导入有效 ssoCookies 时才能尝试学校统一认证续期；仅有预约 Cookie 不保证长期有效。过期后重新登录学校并导入。Cookie 也可能受来源 IP 等防护限制，云端验证失败需按实际返回排查。
+推荐使用网站「登录设置」中的 **本地登录提取脚本**，无浏览器扩展。下载 ZIP 完整解压，Windows 双击 `Start-Windows.cmd`；Mac 在终端输入 `zsh `（末尾空格），将 `Start-macOS.command` 拖入终端并回车。
+
+1. 先运行脚本，再在它打开的独立学校窗口登录，直到预约首页正常显示。
+2. 终端显示「已提取并复制完整会话」后，回到羽球训练家。
+3. 在「登录设置」粘贴 JSON，点击「验证并保存」。
+
+电脑需安装 Chrome 或 Edge；启动器自动准备固定版本 Node.js 并校验下载，无需自行安装 Python 或运行环境。脚本只读取自己启动的临时浏览器资料，包含 HttpOnly Cookie、Token、currentUser、User-Agent，默认也包含本次统一认证 Cookie 供后端尝试续期。结束后关闭独立窗口并清理临时资料，不读取日常浏览器已有会话，不上传、预约或付款。
+
+完整 [Windows / macOS 教程、数据范围与故障排查](../login-helper/README.md)。macOS 启动脚本与架构包已准备，尚需实机验证。强制结束进程时可能需要清理系统临时目录中的 `quest-school-login-*`；剪贴板不会自动清空。
+
+本地提取成功不等于云端验证成功。学校可能限制 Cookie 的网络来源，只有服务器向学校验证通过才保存。统一认证仍可能过期，不能承诺长期无人值守。
+
+高级入口保留逐项填写与 JSON 文件导入：同一次学校登录的成功请求 Request Headers 中复制 Cookie、X-Access-Token、User-Agent；currentUser 从 Application → Local Storage → 学校预约网站复制。不要修改身份或混用不同账号的凭据。
