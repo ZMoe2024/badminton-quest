@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from badminton_reservation.web_server import create_app
 
 
@@ -62,7 +62,9 @@ class AnnouncementTests(unittest.TestCase):
     def test_webp_variant_and_cache_varies(self):
         for name in ('gym','concept'):
             raw=self.client.get('/assets/'+name+'.png',base_url='https://quest.test',headers={'Accept':'image/png'})
-            webp=self.client.get('/assets/'+name+'.png',base_url='https://quest.test',headers={'Accept':'image/webp'})
+            # Minimal Linux images may not register WebP in /etc/mime.types.
+            with patch('mimetypes.guess_type',return_value=(None,None)):
+                webp=self.client.get('/assets/'+name+'.png',base_url='https://quest.test',headers={'Accept':'image/webp'})
             self.assertEqual(webp.content_type,'image/webp')
             self.assertIn('Accept',webp.headers['Vary'])
             self.assertLess(len(webp.data),len(raw.data))

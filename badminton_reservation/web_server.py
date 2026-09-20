@@ -244,7 +244,7 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
         path='/'+name
         if path in PUBLIC:
             if path in ('/assets/concept.png','/assets/gym.png') and request.accept_mimetypes['image/webp'] > 0:
-                response = send_from_directory(ROOT/'gui',name[:-4]+'.webp')
+                response = send_from_directory(ROOT/'gui',name[:-4]+'.webp',mimetype='image/webp')
                 response.vary.add('Accept')
                 return response
             response = send_from_directory(ROOT/'gui',name)
