@@ -1,0 +1,4 @@
+quest.example.com {
+    reverse_proxy 127.0.0.1:18880
+    header X-Content-Type-Options nosniff
+}

@@ -1,4 +1,6 @@
-# 羽球训练家 0.7.2 · Windows / macOS 通用包
+# 羽球训练家 0.8.0 · Windows / macOS 本地单用户包
+
+这是本地版的使用说明。多人网页部署使用仓库根目录的 `start_web.py` 或 Docker，见仓库的 `docs/WEB_DEPLOYMENT.md`。
 
 完整本地浏览器界面 + Python 预约、定时、候补和校园卡支付模块。解压后启动本机服务，浏览器打开 `http://127.0.0.1:18765`。首次运行会安装依赖和 Chromium 登录浏览器（数百 MB），需要联网；之后启动复用已安装组件。无需 Node.js、Chrome 调试插件或 EXE。
 

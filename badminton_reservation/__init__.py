@@ -1,5 +1,5 @@
 """Pure Python badminton reservation, order lookup and campus-card payment."""
-__version__ = '0.7.2'
+__version__ = '0.8.0'
 
 
 def book(config=None, *, submit=False, credentials=None, credentials_file=None, session_file=None,

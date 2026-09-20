@@ -9,7 +9,8 @@ from .resm_api import ResourceAPI, encode_business
 from .response import decode_result
 from .session import expected_identity
 
-ROOT = Path(__file__).resolve().parent
+from .runtime import data_root
+ROOT = data_root(__file__)
 DETAIL_PATH = '/hzsun-resm/chargeManageUseFee/selectChargeManageUseFeeInfoIdAndUserId'
 PAY_PATH = '/hzsun-resm/pay/createOrder'
 

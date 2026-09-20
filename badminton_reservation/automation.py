@@ -17,7 +17,8 @@ from .session import expected_identity, LoginRequired
 from .payment import pay, DETAIL_PATH
 from .resm_api import ResourceAPI
 
-ROOT = Path(__file__).resolve().parent
+from .runtime import data_root
+ROOT = data_root(__file__)
 ACTIVE = {'waiting', 'checking', 'submitting', 'paying', 'unknown', 'payment_pending'}
 BLOCKING = ACTIVE | {'needs_login', 'paused', 'attention', 'booked', 'paid'}
 

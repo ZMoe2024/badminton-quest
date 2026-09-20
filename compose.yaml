@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 110s
+    shm_size: 1gb
+    security_opt:
+      - seccomp=./deploy/seccomp_profile.json
+    environment:
+      QUEST_ORIGIN: ${QUEST_ORIGIN:-http://127.0.0.1:18880}
+    ports:
+      - "127.0.0.1:18880:18880"
+    volumes:
+      - quest-data:/data
+volumes:
+  quest-data:

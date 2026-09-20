@@ -6,12 +6,12 @@ from pathlib import Path
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-VERSION = '0.7.2'
+VERSION = '0.8.0'
 PACKAGE = 'BadmintonQuest-' + VERSION
 MODULES = '''__init__ __main__ automation availability badminton badminton_booking
 booking_submit_python cli compat ecn_bootstrap ecn_bootstrap_loader ecn_client
 ecn_parameter fetch_bootstrap gui_server launcher loader_templates payment resm_api
-response run session session_store start_gui venue_catalog workflow browser_login booking_profile'''.split()
+response run session session_store start_gui venue_catalog workflow browser_login booking_profile runtime'''.split()
 GUI_FILES = ['index.html', 'app.js', 'automation.js', 'login.js', 'style.css', 'dashboard.css',
              'assets/concept.png', 'assets/gym.png']
 

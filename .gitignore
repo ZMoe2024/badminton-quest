@@ -5,6 +5,14 @@ __pycache__/
 .env.*
 !.env.example
 dist/
+.quest-data/
+.web-venv/
+.web-test-data/
+*.sqlite3*
+master.key
+invite-code.txt
+__test_output__/
+.playwright-cli/
 *.log
 *.dpapi*
 *.keychain*

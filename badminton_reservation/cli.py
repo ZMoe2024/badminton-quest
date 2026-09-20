@@ -7,7 +7,8 @@ from .badminton import CATALOG, refresh
 from .venue_catalog import inspect_venue, select_resource
 from .workflow import authenticate, book, DEFAULT_SESSION
 
-ROOT = Path(__file__).resolve().parent
+from .runtime import data_root
+ROOT = data_root(__file__)
 
 
 def authenticated_inputs(args):

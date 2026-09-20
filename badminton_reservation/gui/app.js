@@ -50,6 +50,7 @@ function renderSelection(){
 function renderMap(){
  const rows=visibleCourts();const cols=rows.length>7?7:Math.ceil(rows.length/2);
  $('#map-courts').style.gridTemplateColumns=`repeat(${cols}, minmax(0, 1fr))`;
+ $('#map-courts').style.setProperty('--mobile-map-rows',Math.max(1,Math.ceil(rows.length/4)));
  $('#map-courts').innerHTML=rows.map((c,i)=>{
   const live=S.live?.courts.find(x=>x.infoId===c.infoId);const slot=live?.slots.find(x=>x.start===S.start&&x.end===S.end);
   const state=fresh()&&slot?slot.state:'unknown';

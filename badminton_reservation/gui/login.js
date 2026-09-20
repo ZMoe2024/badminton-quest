@@ -16,6 +16,7 @@ window.LoginUI = (() => {
  <p>凭据只加密保存在本机，不随发布包分享。独立登录窗口关闭后不保留浏览器资料。</p></section>
  <section class="settings-card"><h3>你的本地冒险日志</h3><p>预约、订单与支付结果保存在本机。结果未知时请先查询原订单，不要删除记录重试。</p><p>取消和退款请到学校网站操作；不同电脑的任务不会自动同步。</p></section></div>`;
  function display(d){
+  window.dispatchEvent(new CustomEvent('school-login-state',{detail:d}));
   if(!$('#school-login-status'))return;
   $('#school-login-status').textContent=d.message;
   $('#school-login-status').dataset.state=d.state;

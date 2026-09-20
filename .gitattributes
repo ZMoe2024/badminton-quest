@@ -1,5 +1,8 @@
 * text=auto
-*.command text eol=lf
 *.sh text eol=lf
+*.command text eol=lf
 *.bat text eol=crlf
 *.png binary
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.json text eol=lf

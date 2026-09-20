@@ -5,7 +5,8 @@ from pathlib import Path
 import re
 import tempfile
 
-PATH = Path(__file__).resolve().parent / 'config/booking_data.json'
+from .runtime import data_root
+PATH = data_root(__file__) / 'config/booking_data.json'
 
 
 def load_phone():

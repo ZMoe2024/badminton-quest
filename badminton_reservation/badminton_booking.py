@@ -9,7 +9,8 @@ from .booking_submit_python import run
 from .resm_api import ResourceAPI
 from .venue_catalog import read_credentials, select_resource
 
-ROOT = Path(__file__).resolve().parent
+from .runtime import data_root
+ROOT = data_root(__file__)
 
 
 def resolve(config):

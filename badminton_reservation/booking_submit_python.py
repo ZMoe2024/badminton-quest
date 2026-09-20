@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 from .ecn_client import BootstrapClient, decode_response
 from .response import decode_result
+from .runtime import data_root
 
 
 def run(inputs, submit=False, booking_data=None):
@@ -22,7 +23,7 @@ def run(inputs, submit=False, booking_data=None):
         token_expired_by_claim = claims.get('exp', 0) <= time.time()
         if str(user.get('username')) != str(claims.get('username')) or not user.get('userId'):
             raise ValueError('当前页面用户与登录令牌不一致')
-        booking = (json.loads((Path(__file__).parent / 'config/booking_data.json').read_text(encoding='utf-8'))
+        booking = (json.loads((data_root(__file__) / 'config/booking_data.json').read_text(encoding='utf-8'))
                    if booking_data is None else json.loads(json.dumps(booking_data)))
         booking.update(jobNum=str(user['username']), userId=str(user['userId']))
         booking['users'] = [{'jobNum': booking['jobNum'], 'userId': booking['userId'], 'contact': '', 'checked': False}]
@@ -33,7 +34,7 @@ def run(inputs, submit=False, booking_data=None):
                     'businessCode': result.get('errCode') if isinstance(result, dict) else None}
         fingerprint = hashlib.sha256('|'.join(str(booking[k]) for k in
             ['jobNum', 'userId', 'infoId', 'occupyTimeStart', 'occupyTimeEnd']).encode()).hexdigest()
-        folder = (Path(__file__).parent / 'state/attempts'); folder.mkdir(parents=True, exist_ok=True)
+        folder = (data_root(__file__) / 'state/attempts'); folder.mkdir(parents=True, exist_ok=True)
         for previous in folder.glob(fingerprint + '-*.json'):
             prior = json.loads(previous.read_text(encoding='utf-8'))
             if prior.get('outcome') in ['pending', 'unknown', 'success']:

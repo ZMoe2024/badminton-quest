@@ -12,6 +12,7 @@ from cryptography.fernet import Fernet, InvalidToken
 
 MAGIC = b'BADMINTON-DPAPI-1\n'
 MAC_MAGIC = b'BADMINTON-KEYCHAIN-1\n'
+SERVER_MAGIC = b'BADMINTON-SERVER-1\n'
 KEYCHAIN_SERVICE = 'cn.badminton-quest.session'
 
 
@@ -83,7 +84,9 @@ def save(path, credentials):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     raw = json.dumps(credentials, ensure_ascii=False).encode('utf-8')
-    if platform_name() == 'win32':
+    if os.environ.get('BADMINTON_SERVER_KEY'):
+        encrypted = SERVER_MAGIC + Fernet(os.environ['BADMINTON_SERVER_KEY'].encode()).encrypt(raw)
+    elif platform_name() == 'win32':
         encrypted = MAGIC + crypt(raw)
     elif platform_name() == 'darwin':
         previous = path.read_bytes() if path.exists() else b''
@@ -108,7 +111,12 @@ def save(path, credentials):
 
 def load(path):
     encrypted = Path(path).read_bytes()
-    if encrypted.startswith(MAGIC):
+    if encrypted.startswith(SERVER_MAGIC):
+        try:
+            raw = Fernet(os.environ['BADMINTON_SERVER_KEY'].encode()).decrypt(encrypted[len(SERVER_MAGIC):])
+        except (KeyError, ValueError, InvalidToken):
+            raise ValueError('服务器会话密钥不匹配，不能读取此账号的凭据') from None
+    elif encrypted.startswith(MAGIC):
         if platform_name() != 'win32':
             raise ValueError('Windows 加密会话不能在 Mac 解密，请在此电脑重新导入登录会话')
         raw = crypt(encrypted[len(MAGIC):], decrypt=True)

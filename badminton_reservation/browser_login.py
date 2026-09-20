@@ -96,10 +96,11 @@ class LoginBrowser:
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0))
             port = sock.getsockname()[1]
+        extra = ['--disable-dev-shm-usage'] if os.environ.get('RAILWAY_ENVIRONMENT_ID') else []
         self.process = subprocess.Popen([
             str(executable), '--remote-debugging-address=127.0.0.1',
             '--remote-debugging-port=' + str(port), '--user-data-dir=' + str(self.profile),
-            '--no-first-run', '--no-default-browser-check', '--window-size=1120,800', 'about:blank'
+            '--no-first-run', '--no-default-browser-check', '--window-size=1120,800', *extra, 'about:blank'
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(40):
             check()
@@ -187,6 +188,10 @@ class BrowserLogin:
         if time.monotonic() >= deadline:
             raise ValueError('登录等待已超时，原会话保留。请重新点击登录。')
 
+    def interact(self, pages):
+        """Optional server-side login viewport; local mode has no remote controls."""
+        pass
+
     def _accept(self, credentials, deadline, check_page=None):
         self._status('verifying', '已识别学校账号，正在用 Python 验证会话并加密保存…')
         acquired = False
@@ -262,6 +267,7 @@ class BrowserLogin:
                         pages = [p for p in context.pages if not p.is_closed()]
                         if not browser.is_connected() or not pages:
                             raise LoginCancelled()
+                        self.interact(pages)
                         # A failed protection/navigation response must not look like an endless login wait.
                         blank_failure = None
                         for current in pages:

@@ -26,8 +26,9 @@ from .automation import Scheduler
 from .browser_login import BrowserLogin
 from .booking_profile import load_phone, save_phone, require_phone
 
-ROOT = Path(__file__).resolve().parent
-WEB = ROOT / 'gui'
+from .runtime import data_root
+ROOT = data_root(__file__)
+WEB = Path(__file__).resolve().parent / 'gui'
 
 
 def catalog():
@@ -218,7 +219,7 @@ def make_handler(app):
                 if not 0 < length < 100000: raise ValueError('请求大小不正确')
                 data = json.loads(self.rfile.read(length))
                 if not isinstance(data, dict): raise ValueError('请求格式错误')
-                if data.get('action') not in ('tasks', 'task-save', 'task-cancel', 'login-start', 'login-status', 'login-cancel'):
+                if data.get('action') not in ('tasks', 'task-save', 'task-cancel', 'login-start', 'login-status', 'login-cancel', 'login-input'):
                     acquired = app.lock.acquire(blocking=False)
                     if not acquired: return self.send(409, {'error': '后台正在查询或处理任务，请稍候再试'})
                 self.send(200, app.action(data))

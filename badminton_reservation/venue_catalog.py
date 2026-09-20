@@ -7,7 +7,8 @@ from collections import Counter
 from pathlib import Path
 from .resm_api import ResourceAPI
 
-DEFAULT_OUTPUT = Path(__file__).parent / 'state/venues'
+from .runtime import data_root
+DEFAULT_OUTPUT = data_root(__file__) / 'state/venues'
 TREE_QUERY = {'infoStatus': '0', 'resFlag': '1', 'resName': '', 'resType': '', 'userFlag': '', 'userId': ''}
 
 

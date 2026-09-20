@@ -9,7 +9,8 @@ from . import session_store
 from .venue_catalog import read_credentials
 from .payment import resolve_order, pay
 
-ROOT = Path(__file__).resolve().parent
+from .runtime import data_root
+ROOT = data_root(__file__)
 DEFAULT_SESSION = ROOT / ('config/session.keychain' if sys.platform == 'darwin' else 'config/session.dpapi')
 DEFAULT_CONFIG = ROOT / 'config/booking.json'
 
