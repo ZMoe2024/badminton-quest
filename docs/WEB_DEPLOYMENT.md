@@ -123,4 +123,10 @@ docker compose up -d --build
 
 本地提取成功不等于云端验证成功。学校可能限制 Cookie 的网络来源，只有服务器向学校验证通过才保存。统一认证仍可能过期，不能承诺长期无人值守。
 
+### 安卓与 iPhone
+
+不提供专用 APK 或 iOS 应用。两种手机统一使用浏览器：先在 Windows 或 Mac 电脑上运行提取脚本，将学校会话导入自己的羽球训练家网站账号；再在手机登录同一个网站账号。iPhone 也可用 Windows 电脑完成导入，不需要 Mac。
+
+验证保存后，学校会话由服务器按网站账号隔离使用，手机无需复制 Cookie。已启用任务运行在服务器上，电脑可以关机。学校会话失效且自动续期失败时，需要再次用电脑导入。添加到手机主屏幕仅提供网站快捷入口，不会绕过浏览器的 Cookie 权限限制。
+
 高级入口保留逐项填写与 JSON 文件导入：同一次学校登录的成功请求 Request Headers 中复制 Cookie、X-Access-Token、User-Agent；currentUser 从 Application → Local Storage → 学校预约网站复制。不要修改身份或混用不同账号的凭据。

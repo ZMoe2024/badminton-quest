@@ -9,7 +9,8 @@ window.LoginUI.render=()=>renderLogin()
  .replace('id="school-login"','id="school-login" hidden')
  .replace('学校认证彻底失效时需重新登录。登录完成不会自动启用任务或付款。','Cookie 或 Token 失效后需重新导入。仅导入预约网站 Cookie 不能保证自动续期或无人值守。')
  .replace(/<details>[\s\S]*?<\/details>/,`<h3>本地登录一次，复制结果即可</h3>
- <div class="manual-actions"><a class="button primary compact" href="/login-helper.zip?v=1.1" download="badminton-quest-login-helper.zip">下载登录提取脚本 v1.1</a><button class="button compact" id="show-helper-guide">Windows / Mac 教程</button></div>
+ <div class="manual-actions"><a class="button primary compact" href="/login-helper.zip?v=1.1" download="badminton-quest-login-helper.zip">电脑提取脚本 v1.1</a><button class="button compact" id="show-helper-guide">电脑 / 手机使用教程</button></div>
+ <p><strong>安卓和 iPhone：</strong>先用 Windows 或 Mac 导入一次学校会话，再在手机浏览器登录同一个羽球训练家账号。无需安装手机应用；以下脚本需在电脑上运行。</p>
  <ol class="session-steps">
  <li>下载并完整解压。Windows 双击 <strong>Start-Windows.cmd</strong>；Mac 按教程在终端运行。</li>
  <li>在脚本打开的<strong>独立学校窗口</strong>完成登录，等终端提示「已提取并复制完整会话」。</li>
@@ -18,6 +19,8 @@ window.LoginUI.render=()=>renderLogin()
  <details id="helper-guide"><summary>使用教程：不需要浏览器扩展</summary>
  <p><strong>Windows 10/11：</strong>完整解压 ZIP，双击 <code>Start-Windows.cmd</code>；也可在解压目录的 PowerShell 输入 <code>.\\Start-Windows.cmd</code>。</p>
  <p><strong>macOS：</strong>打开「终端」，输入 <code>zsh </code>（末尾有空格），把解压后的 <code>Start-macOS.command</code> 拖进终端，回车。或在解压目录输入 <code>zsh ./Start-macOS.command</code>。</p>
+ <p><strong>安卓 / iPhone：</strong>① 在电脑登录自己的羽球训练家账号；② 运行脚本，在独立学校窗口完成登录；③ 把结果粘贴回网站并点「验证并保存」；④ 手机打开同一网站，登录<strong>同一个羽球训练家账号</strong>即可查询、预约和管理任务。Windows 电脑也能为 iPhone 完成此步骤。</p>
+ <p>导入完成后电脑不必一直开机，已启用任务由服务器运行。如果学校会话失效且自动续期失败，需要再次用电脑导入。手机浏览器的「添加到主屏幕」仅方便打开网站，不会获得读取学校 Cookie 的权限。</p>
  <p>电脑需已安装 Chrome 或 Edge。首次运行自动准备运行环境，不用自行安装 Python 或 Node.js。Mac 支持 Intel / Apple Silicon 启动包，尚需实机验证。</p>
  <p><strong>先启动脚本，再在它打开的窗口登录。</strong>它只读取本次独立登录，不读取日常浏览器资料。默认包含本次统一认证 Cookie 用于尝试续期；更多选项见 ZIP 内 README。</p>
  <p>正常结束会关闭独立窗口并清理临时资料，最长等待 10 分钟；Ctrl+C 可取消。复制失败时从终端手动复制完整 JSON。脚本不上传数据、不预约、不付款；只把结果粘贴到你信任的网站。</p>
