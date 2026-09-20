@@ -1,0 +1,33 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'cn.badmintonquest.mobile'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'cn.badmintonquest.mobile'
+        minSdk 28
+        targetSdk 35
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+    signingConfigs {
+        release {
+            if (System.getenv('QUEST_KEYSTORE')) {
+                storeFile file(System.getenv('QUEST_KEYSTORE'))
+                storePassword System.getenv('QUEST_KEYSTORE_PASSWORD')
+                keyAlias 'quest'
+                keyPassword System.getenv('QUEST_KEYSTORE_PASSWORD')
+                storeType 'PKCS12'
+            }
+        }
+    }
+    buildTypes { release { if (System.getenv('QUEST_KEYSTORE')) signingConfig signingConfigs.release } }
+    sourceSets { main.assets.srcDirs += ['../../shared'] }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:core:1.6.1'
+}

@@ -1,0 +1,8 @@
+<resources>
+  <style name="QuestTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+    <item name="android:fontFamily">sans</item><item name="android:colorAccent">#CF3E50</item>
+    <item name="android:windowLightStatusBar">true</item><item name="android:statusBarColor">#FFF7E5</item>
+    <item name="android:navigationBarColor">#FFF7E5</item><item name="android:windowLightNavigationBar">true</item>
+    <item name="android:windowActionModeOverlay">true</item><item name="android:windowBackground">#FFF7E5</item>
+  </style>
+</resources>
