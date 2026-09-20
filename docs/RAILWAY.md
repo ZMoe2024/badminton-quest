@@ -23,3 +23,7 @@
 CLI 部署需要先 `railway login`。注册不需要邀请码；不需要把本机旧版的任何 Cookie、Token 或个人配置上传。GitHub 提交仅含程序和演示截图。
 
 参考：[Railway 持久卷](https://docs.railway.com/volumes)、[健康检查与端口](https://docs.railway.com/deployments/healthchecks)、[环境变量](https://docs.railway.com/variables/reference)。
+
+## 本次部署验证（2026-09-20）
+
+已验证 Linux 容器启动、持久卷权限、HTTPS 健康检查、无需邀请码注册、个人后台启动、缺失凭据拒绝、退出后会话撤销。临时测试账号已清理。测试没有导入真实学校会话，没有创建预约或支付；27 块场地来自随包目录，实时可用状态仍需使用用户自己的有效会话查询。
