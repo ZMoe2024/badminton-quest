@@ -4,7 +4,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = ('Start-Windows.cmd', 'Start-Windows.ps1', 'Start-macOS.command',
-         'session-helper.mjs', 'credentials.mjs', 'cdp.mjs', 'README.md')
+         'session-helper.mjs', 'browser-launch.mjs', 'credentials.mjs', 'cdp.mjs', 'README.md')
 
 
 def build():

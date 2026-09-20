@@ -9,7 +9,7 @@ window.LoginUI.render=()=>renderLogin()
  .replace('id="school-login"','id="school-login" hidden')
  .replace('学校认证彻底失效时需重新登录。登录完成不会自动启用任务或付款。','Cookie 或 Token 失效后需重新导入。仅导入预约网站 Cookie 不能保证自动续期或无人值守。')
  .replace(/<details>[\s\S]*?<\/details>/,`<h3>本地登录一次，复制结果即可</h3>
- <div class="manual-actions"><a class="button primary compact" href="/login-helper.zip" download="badminton-quest-login-helper.zip">下载登录提取脚本</a><button class="button compact" id="show-helper-guide">Windows / Mac 教程</button></div>
+ <div class="manual-actions"><a class="button primary compact" href="/login-helper.zip?v=1.1" download="badminton-quest-login-helper.zip">下载登录提取脚本 v1.1</a><button class="button compact" id="show-helper-guide">Windows / Mac 教程</button></div>
  <ol class="session-steps">
  <li>下载并完整解压。Windows 双击 <strong>Start-Windows.cmd</strong>；Mac 按教程在终端运行。</li>
  <li>在脚本打开的<strong>独立学校窗口</strong>完成登录，等终端提示「已提取并复制完整会话」。</li>

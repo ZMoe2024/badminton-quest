@@ -5,6 +5,7 @@ import os from 'node:os';
 import {setTimeout as delay} from 'node:timers/promises';
 import {CDP} from './cdp.mjs';
 import {collectCredentials, PAGE_SESSION} from './credentials.mjs';
+import {prepareLaunch, debuggerUrl, failedPageMessage} from './browser-launch.mjs';
 
 const APP='https://resm.lzjtu.edu.cn';
 let browser,profile,connection,cancelled=false;
@@ -49,45 +50,67 @@ async function cleanup(){
 }
 async function main(){
   const executable=await findBrowser();
-  console.log('羽球训练家 · 本地会话提取\n将在独立窗口打开学校网站，请完成登录并进入预约首页。');
+  console.log('羽球训练家 · 本地会话提取 v1.1\n将在独立窗口打开学校网站，请完成登录并进入预约首页。');
   console.log('脚本只读取这次独立登录的学校会话（含 HttpOnly Cookie），成功后复制到剪贴板。');
   console.log(process.argv.includes('--no-sso')?'本次不包含统一认证 Cookie。':'同时包含本次登录的统一认证 Cookie，供服务器尝试续期。');
   console.log('不会自动上传、预约或付款。可按 Ctrl+C 取消，最长等待 10 分钟。');
   profile=await fs.mkdtemp(path.join(os.tmpdir(),'quest-school-login-'));
-  browser=spawn(executable,['--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+profile,'--no-first-run','--no-default-browser-check','--window-size=1120,800','about:blank'],{stdio:'ignore'});
+  const launch=await prepareLaunch(profile);
+  browser=spawn(executable,launch.args,{stdio:'ignore'});
   let launchError=false;browser.once('error',()=>{launchError=true;});
-  let portData;
+  let websocket;
   for(let i=0;i<80;i++){
     if(cancelled)throw Error('已取消。');
     if(launchError||browser.exitCode!==null)throw Error('独立登录浏览器启动失败或已关闭。');
-    try{portData=(await fs.readFile(path.join(profile,'DevToolsActivePort'),'utf8')).trim().split(/\r?\n/);if(portData.length>=2)break;}catch{}
+    try{websocket=await debuggerUrl(launch.port);break;}catch{}
     await delay(250);
   }
-  if(!portData||!/^\d+$/.test(portData[0])||!portData[1]?.startsWith('/devtools/browser/'))throw Error('登录浏览器初始化超时，请重试。');
-  connection=await CDP.connect('ws://127.0.0.1:'+portData[0]+portData[1]);
-  const sessions=new Map(),tokens=new Map();
+  if(!websocket)throw Error('登录浏览器初始化超时，请重试。');
+  connection=await CDP.connect(websocket);
+  let initial;
+  for(let i=0;i<40;i++){
+    if(cancelled)throw Error('已取消。');
+    initial=(await connection.send('Target.getTargets')).targetInfos.find(t=>t.type==='page'&&t.url===launch.startUrl);
+    if(initial)break;
+    await delay(250);
+  }
+  if(!initial){connection.close();connection=null;throw Error('未找到本次独立登录窗口，已停止读取。请重新运行脚本。');}
+  const sessions=new Map(),tokens=new Map(),documents=new Map(),blankSince=new Map();
   connection.listeners.add(event=>{
+    if(event.method==='Network.responseReceived'&&event.params?.type==='Document'){
+      const response=event.params.response;
+      try{const url=new URL(response.url);documents.set(event.sessionId,{host:url.hostname,path:url.pathname,status:response.status});}catch{}
+    }
     if(event.method!=='Network.requestWillBeSent')return;
     const request=event.params?.request;
     if(!request?.url.startsWith(APP+'/'))return;
     const token=Object.entries(request.headers||{}).find(([key])=>key.toLowerCase()==='x-access-token')?.[1];
     if(token){const values=tokens.get(event.sessionId)||[];values.unshift(token);tokens.set(event.sessionId,[...new Set(values)].slice(0,8));}
   });
-  const initial=(await connection.send('Target.getTargets')).targetInfos.find(t=>t.type==='page');
-  if(initial){
+  {
     const {sessionId}=await connection.send('Target.attachToTarget',{targetId:initial.targetId,flatten:true});
     sessions.set(initial.targetId,sessionId);await connection.send('Network.enable',{},sessionId);
     await connection.send('Page.navigate',{url:APP+'/'},sessionId);
-  }else await connection.send('Target.createTarget',{url:APP+'/'});
+  }
   const deadline=Date.now()+600000;
   while(Date.now()<deadline){
     if(cancelled)throw Error('已取消。');
     if(browser.exitCode!==null||connection.socket.readyState!==WebSocket.OPEN)throw Error('登录窗口已关闭，未导出会话。');
-    const targets=(await connection.send('Target.getTargets')).targetInfos.filter(t=>t.type==='page'&&t.url.startsWith(APP+'/'));
+    const targets=(await connection.send('Target.getTargets')).targetInfos.filter(t=>t.type==='page'&&
+      (t.url.startsWith(APP+'/')||t.url.startsWith('https://authserver.lzjtu.edu.cn/')));
+    let failure;
     for(const target of targets){
       try{
         let sessionId=sessions.get(target.targetId);
         if(!sessionId){({sessionId}=await connection.send('Target.attachToTarget',{targetId:target.targetId,flatten:true}));sessions.set(target.targetId,sessionId);await connection.send('Network.enable',{},sessionId);}
+        const pageInfo=await connection.send('Runtime.evaluate',{expression:`({host:location.hostname,path:location.pathname,empty:!document.body||(!document.body.innerText.trim()&&!document.querySelector('input:not([type=hidden]),iframe,canvas,img'))})`,returnByValue:true},sessionId);
+        const visible=pageInfo.result?.value,document=documents.get(sessionId);
+        if(visible?.empty&&document?.host===visible.host&&document?.path===visible.path&&document.status>=400){
+          const since=blankSince.get(target.targetId)??Date.now();blankSince.set(target.targetId,since);
+          failure=failedPageMessage({...document,empty:true},Date.now()-since);
+          if(failure)break;
+        }else blankSince.delete(target.targetId);
+        if(!target.url.startsWith(APP+'/'))continue;
         const result=await connection.send('Runtime.evaluate',{expression:PAGE_SESSION,returnByValue:true},sessionId);
         const {cookies}=await connection.send('Storage.getCookies');
         const credentials=collectCredentials(result.result?.value,cookies,tokens.get(sessionId),{includeSso:!process.argv.includes('--no-sso')});
@@ -99,6 +122,7 @@ async function main(){
         return;
       }catch(error){if(cancelled)throw error;/* The school may navigate while its login state is read. */}
     }
+    if(failure)throw Error(failure);
     await delay(1000);
   }
   throw Error('等待登录超时。若学校页面空白，请稍后重新运行；完成登录后必须进入预约首页。');
