@@ -60,7 +60,7 @@ function renderMap(){
  $('#map-courts').innerHTML=rows.map((c,i)=>{
   const live=S.live?.courts.find(x=>x.infoId===c.infoId);const slot=live?.slots.find(x=>x.start===S.start&&x.end===S.end);
   const state=fresh()&&slot?slot.state:'unknown';
-  const label=S.liveError||live?.error?'查询失败':fresh()&&slot?slot.label:live&&!fresh()?'需刷新':fresh()&&live?(S.start?'无此时段':'无可选时段'):'查询中';
+  const label=live?.error?'查询失败':fresh()&&slot?slot.label:live&&!fresh()?'需刷新':fresh()&&live?(S.start?'无此时段':'无可选时段'):c.infoId===S.court?.infoId?(S.liveError?'查询失败':'查询中'):'点选查询';
   return `<button class="court ${state} ${c.infoId===S.court?.infoId?'selected':''}" data-court="${e(c.infoId)}" aria-label="${e(c.name)}，${e(label)}" aria-pressed="${c.infoId===S.court?.infoId}"><span class="selector">▼</span><span class="court-status">${e(label)}</span><span class="court-number">${String(i+1).padStart(2,'0')}</span></button>`;
  }).join('');
 }
@@ -72,15 +72,17 @@ function renderSlots(){
  $('#slot-source').textContent=fresh()?'来自学校网站':'数据已过期';
  $('#slots').innerHTML=d.slots.map(s=>`<button class="slot ${s.state} ${s.start===S.start&&s.end===S.end?'selected':''}" data-start="${e(s.start)}" data-end="${e(s.end)}" ${!fresh()?'disabled':''} aria-pressed="${s.start===S.start&&s.end===S.end}"><strong>${e(s.start)} – ${e(s.end)}</strong><small>${fresh()?e(s.label):'需刷新'}</small></button>`).join('');
 }
-async function refreshLive(){
+async function refreshLive(allCourts=false,includeCatalog=false){
  const epoch=++S.epoch;S.live=null;S.liveError=false;S.received=0;$('#sync-time').textContent='正在实时查询…';renderMap();renderSlots();updateButtons();
  try{
-  const d=await api('availability',{group:S.group,date:S.date});if(epoch!==S.epoch)return;
+  const d=await api('availability',{group:S.group,date:S.date,includeCatalog,...(allCourts?{}:{venue:S.court?.infoId})});if(epoch!==S.epoch)return;
+  if(d.catalog){S.courts=d.catalog;S.court=S.courts.find(c=>c.infoId===S.court?.infoId)||S.courts[0];}
+  if(d.account){$('#session-pill').textContent=`● ${d.account} 已连接`;$('#session-pill').style.color='var(--green)';}
   S.live=d;S.received=Date.now();
   const time=new Date(d.fetchedAt).toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false});
   const errors=d.courts.filter(c=>c.error).length;
   $('#sync-time').textContent=`${errors?'部分查询失败 · ':''}${time} 更新`;
-  message(errors?'部分道馆还没有回应':'准备好了吗，训练家？',errors?'查询失败的场地会显示未知，请刷新后再选择。':`${dateLabel(S.date)}，选择你喜欢的场地和时段。空闲时段仍须通过账号额度校验。`);
+  message(errors?'部分道馆还没有回应':'准备好了吗，训练家？',errors?'查询失败的场地会显示未知，请刷新后再选择。':`${dateLabel(S.date)}，${allCourts?'全馆已查询':'已查询当前场地，其他场地可点选查询'}。空闲时段仍须通过账号额度校验。`);
   renderSelection();
  }catch(err){S.live=null;S.liveError=true;$('#sync-time').textContent='查询失败 · 状态未知';$('#slot-source').textContent='查询失败';$('#slots').innerHTML=`<div class="empty">${e(err.message)}<br>没有使用旧的空闲状态</div>`;renderMap();throw err;}
 }
@@ -131,7 +133,7 @@ async function boot(){
  art();try{const d=await loadBootstrap();S.courts=d.courts;S.today=d.today;S.date=d.config.date<S.today?S.today:d.config.date;S.court=S.courts.find(c=>c.infoId===d.config.venue||c.name===d.config.venue)||S.courts[0];S.group=S.court.group;S.start=d.config.start;S.end=d.config.end;renderSelection();document.querySelectorAll('[data-group]').forEach(b=>{b.classList.toggle('active',b.dataset.group===S.group);b.setAttribute('aria-selected',b.dataset.group===S.group);});
   window.dispatchEvent(new Event('catalog-ready'));
   if(!d.sessionStored){message('欢迎来到道馆','先登录自己的学校账号，并填写预约联系电话。');await showView('settings');return;}
-  await task('正在核对通行证并更新场地目录…',async()=>{let freshCatalog;try{freshCatalog=await api('catalog');$('#session-pill').textContent=`● ${freshCatalog.account} 已连接`;$('#session-pill').style.color='var(--green)';}catch(err){$('#session-pill').textContent='● 连接待检查';$('#session-pill').style.color='var(--red)';$('#slots').innerHTML='<div class="empty">登录或连接未通过检查<br>请到「登录设置」核实</div>';$('#slot-source').textContent='状态未知';throw err;}S.courts=freshCatalog.courts;S.court=S.courts.find(c=>c.infoId===S.court.infoId)||S.courts[0];S.group=S.court.group;await refreshLive();});
+  await task('正在核对登录并查询当前场地…',async()=>{try{await refreshLive(false,true);}catch(err){$('#session-pill').textContent='● 连接待检查';$('#session-pill').style.color='var(--red)';throw err;}});
  }catch(err){message('道馆暂时未连接',err.message);toast(err.message);}
  if(location.hash==='#automation'&&S.courts.length)showView('automation');
 }
@@ -140,12 +142,13 @@ document.addEventListener('click',async ev=>{
  if(b.dataset.view)return showView(b.dataset.view);
  if(b.dataset.group)return switchGroup(b.dataset.group);
  if(b.dataset.date)return switchDate(b.dataset.date);
- if(b.dataset.court){if(S.busy)return;S.court=S.courts.find(c=>c.infoId===b.dataset.court);resetPrice();renderSelection();return;}
+ if(b.dataset.court){if(S.busy)return;S.court=S.courts.find(c=>c.infoId===b.dataset.court);resetPrice();renderSelection();if(!fresh()||!currentData())return task('查询所选场地…',()=>refreshLive());return;}
  if(b.dataset.start){if(S.busy)return;resetPrice();S.start=b.dataset.start;S.end=b.dataset.end;renderSelection();return;}
  if(b.dataset.orderStatus)return task('正在核对订单状态…',async()=>{const d=await api('order-status',{key:b.dataset.orderStatus});const label=d.feePayStatus==='1'?'已支付':d.feePayStatus==='0'?'未支付':'支付状态 '+d.feePayStatus;const state=$(`[data-state-key="${b.dataset.orderStatus}"]`);state.textContent=`${label} · 订单状态 ${d.feeOrderStatus} · 截止 ${d.feeOrderExpiredDate||'未提供'}`;if(d.feeOrderStatus!=='0'||d.feePayStatus!=='0')b.closest('.record-card').querySelector('[data-order-pay]').disabled=true;});
  if(b.dataset.orderPay){const key=b.dataset.orderPay;return ask('支付这笔原订单？',`<p>金额：<strong>¥ ${e(b.dataset.amount)}</strong></p><p>将再次向网站核对订单、账号和金额。</p>`,'这会发送一次真实校园卡支付请求。订单已过期、已支付或结果未知时，程序会停止重复支付。',()=>task('正在支付原订单…',async()=>{const d=await api('pay',{key,confirmed:true,requestId:crypto.randomUUID()});showResult('支付结果',`<p>${e(d.payment.message||d.payment.outcome)}</p><p>支付受理不等于最终扣款成功，请再次查询订单状态。</p>`);}));}
  switch(b.id){
   case 'refresh':return task('正在刷新学校实时数据…',refreshLive);
+  case 'refresh-all':return task('正在查询全馆，所需时间较长…',()=>refreshLive(true));
   case 'book':return submitBooking();
   case 'check':return task('正在检查所选时段…',async()=>{await api('check',{config:cfg()});message('场地和配置检查通过','实际预约仍由服务器核对占用、账号次数及其他条件。');toast('检查通过；未创建预约，也未支付。');});
   case 'save-config':if(!S.start)return toast('请先选择完整时段');return task('保存选择…',async()=>{await api('save',{config:cfg()});toast('已保存当前场地、日期和时段。');});
@@ -156,7 +159,7 @@ document.addEventListener('click',async ev=>{
   case 'import-login':return task('正在导入并验证会话…',async()=>{const file=$('#session-file').files[0];if(!file)throw Error('请先选择凭据 JSON 文件');if(file.size>90000)throw Error('凭据文件过大');const credentials=JSON.parse(await file.text());await api('import',{credentials});await sessionCheck();$('#session-file').value='';toast('会话已验证并加密保存在本机。');});
  }
 });
-$('#court-select').addEventListener('change',()=>{resetPrice();S.court=S.courts.find(c=>c.infoId===$('#court-select').value);renderSelection();});
+$('#court-select').addEventListener('change',()=>{resetPrice();S.court=S.courts.find(c=>c.infoId===$('#court-select').value);renderSelection();if(!fresh()||!currentData())task('查询所选场地…',()=>refreshLive());});
 $('#date-input').addEventListener('change',()=>switchDate($('#date-input').value));
 $('#confirm-dialog').addEventListener('close',()=>{const run=S.confirming;S.confirming=null;if($('#confirm-dialog').returnValue==='submit'&&run)run();});
 setInterval(()=>{if(!document.hidden&&S.view==='explore'&&!S.busy&&!$('dialog[open]'))task('正在自动更新场地状态…',refreshLive);},60000);

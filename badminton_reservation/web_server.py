@@ -13,12 +13,13 @@ from flask import Flask, g, jsonify, redirect, request, send_from_directory
 from .web_accounts import Accounts
 from .web_workers import Workers
 from .web_rentals import Rentals, booking_config
+from .announcements import Announcements
 
 ROOT = Path(__file__).resolve().parent
 COOKIE = 'quest_session'
 PUBLIC = {'/app.js','/automation.js','/login.js','/style.css','/dashboard.css',
           '/assets/concept.png','/assets/gym.png'}
-REMOTE = {'/web.css','/web.js','/auth.js','/login-helper.zip','/rentals.js','/rentals.css'}
+REMOTE = {'/web.css','/web.js','/auth.js','/login-helper.zip','/rentals.js','/rentals.css','/notices.js','/notices.css'}
 ACTIONS = {'profile','save-profile','tasks','task-save','task-cancel','task-enable','orders',
            'save','session','renew','catalog','availability','records','check','book','order-status',
            'pay','import','login-status','login-cancel'}
@@ -47,9 +48,10 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
     accounts = Accounts(root/'accounts.sqlite3', max_users)
     workers = workers or Workers(root, key, accounts)
     rentals = Rentals(accounts)
+    notices = Announcements(accounts)
     app = Flask(__name__, static_folder=None)
     app.config.update(MAX_CONTENT_LENGTH=100000, QUEST_ORIGIN=origin)
-    app.extensions.update(quest_accounts=accounts, quest_workers=workers, quest_rentals=rentals)
+    app.extensions.update(quest_accounts=accounts, quest_workers=workers, quest_rentals=rentals, quest_notices=notices)
 
     @app.before_request
     def guard():
@@ -143,7 +145,7 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
         if not g.user:return redirect('/login')
         html=(ROOT/'gui/index.html').read_text(encoding='utf-8')
         html=html.replace('__LOCAL_TOKEN__',g.user['csrf']).replace('</head>',
-            '<meta name="quest-mode" content="web"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/rentals.css"><script src="/web.js" defer></script><script src="/rentals.js" defer></script></head>')
+            '<meta name="quest-mode" content="web"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/rentals.css"><script src="/web.js" defer></script><script src="/rentals.js" defer></script><link rel="stylesheet" href="/notices.css"><script src="/notices.js" defer></script></head>')
         return html.replace('LOCAL EDITION · v0.5','WEB EDITION · 0.8')
 
     @app.get('/api/bootstrap')
@@ -170,6 +172,19 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
     @app.get('/api/rentals')
     def rental_snapshot():
         return jsonify(rentals.snapshot(g.user['id']))
+
+    @app.get('/api/notices')
+    def notice_list():
+        return jsonify(notices.snapshot(g.user['id']))
+
+    @app.post('/api/notices')
+    def notice_save():
+        uid=g.user['id']
+        if not notices.can_manage(uid): return jsonify(error='仅公告管理员可操作'),403
+        if not accounts.rate_limit('notices:'+uid, maximum=30, seconds=60): return jsonify(error='操作过于频繁'),429
+        try: return jsonify(id=notices.save(uid,data()))
+        except PermissionError: return jsonify(error='仅公告管理员可操作'),403
+        except ValueError as exc: return jsonify(error=str(exc)),400
 
     @app.post('/api/rentals/<operation>')
     def rental_action(operation):
@@ -227,7 +242,14 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
     @app.get('/<path:name>')
     def assets(name):
         path='/'+name
-        if path in PUBLIC:return send_from_directory(ROOT/'gui',name)
+        if path in PUBLIC:
+            if path in ('/assets/concept.png','/assets/gym.png') and request.accept_mimetypes['image/webp'] > 0:
+                response = send_from_directory(ROOT/'gui',name[:-4]+'.webp')
+                response.vary.add('Accept')
+                return response
+            response = send_from_directory(ROOT/'gui',name)
+            if path.startswith('/assets/'): response.vary.add('Accept')
+            return response
         if path in REMOTE:return send_from_directory(ROOT/'web',name)
         return jsonify(error='不存在'),404
 

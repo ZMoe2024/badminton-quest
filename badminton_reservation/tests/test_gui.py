@@ -105,6 +105,23 @@ class GUIBoundaryTests(unittest.TestCase):
         self.assertNotIn('token',response.json())
         self.assertNotIn('cookies',response.json())
 
+    def test_selected_court_only_with_one_authentication_and_optional_catalog(self):
+        rows=[dict(infoId='a',name='A',group='main'),dict(infoId='b',name='B',group='main')]
+        with patch('badminton_reservation.gui_server.authenticate',return_value=({},{})) as auth, \
+             patch('badminton_reservation.gui_server.expected_identity',return_value=('test-user','uid')), \
+             patch('badminton_reservation.gui_server.catalog',return_value=rows), \
+             patch('badminton_reservation.gui_server.refresh') as refresh, \
+             patch.object(self.app.scheduler,'due_soon',return_value=False), \
+             patch.object(self.app.scheduler,'note_health'), \
+             patch('badminton_reservation.gui_server.fetch_availability',return_value={'courts':[]}) as fetch:
+            result=self.app.action({'action':'availability','group':'main','venue':'b','date':'2026-09-21','includeCatalog':True})
+            auth.assert_called_once();refresh.assert_called_once()
+            self.assertEqual(fetch.call_args.args[1],[rows[1]])
+            self.assertEqual(result['catalog'],rows)
+            with self.assertRaises(ValueError):self.app.action({'action':'availability','group':'main','venue':'outsider','date':'2026-09-21'})
+            self.app.action({'action':'availability','group':'main','date':'2026-09-21'})
+            self.assertEqual(fetch.call_args.args[1],rows)
+
     def test_local_server_cannot_replace_existing_listener(self):
         server = LocalServer(('127.0.0.1', 0), make_handler(Application()))
         try:

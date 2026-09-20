@@ -32,14 +32,14 @@
     </aside>
     <main id="explore-view" class="explore-view">
       <section class="welcome pixel-panel"><span class="shuttle" aria-hidden="true">🏸</span><div><h2>今天，去打羽毛球吧！</h2><p>球不只是一项运动，更是一场属于自己的冒险。</p></div></section>
-      <div class="map-toolbar"><div class="gym-tabs" role="tablist" aria-label="选择场馆"><button class="active" role="tab" aria-selected="true" data-group="main">主馆</button><button role="tab" aria-selected="false" data-group="annex">副馆</button><button role="tab" aria-selected="false" data-group="tianyou">天佑</button></div><button id="refresh" class="text-button">↻ 刷新状态</button></div>
+      <div class="map-toolbar"><div class="gym-tabs" role="tablist" aria-label="选择场馆"><button class="active" role="tab" aria-selected="true" data-group="main">主馆</button><button role="tab" aria-selected="false" data-group="annex">副馆</button><button role="tab" aria-selected="false" data-group="tianyou">天佑</button></div><div><button id="refresh-all" class="text-button">查询全馆</button><button id="refresh" class="text-button">↻ 刷新当前</button></div></div>
       <section class="gym-stage" aria-label="羽毛球场馆地图">
         <div class="map-courts" id="map-courts"></div>
         <div class="map-caption"><span id="map-caption">正在载入场地目录…</span><span>场地示意图</span></div>
       </section>
       <div class="map-legend"><span><i class="legend-dot free"></i>可预约</span><span><i class="legend-dot occupied"></i>已占用</span><span><i class="legend-dot unknown"></i>未开放 / 待查询</span><span id="sync-time">尚未查询网站</span></div>
       <section class="dialogue pixel-panel" aria-live="polite"><div class="mascot art" data-crop="315,840,170,109" role="img" aria-label="拿着球拍的皮卡丘"></div><div><h3 id="dialogue-title">准备好了吗，训练家？</h3><p id="dialogue-text">选好场地，开启你的下一场冒险！</p></div><span class="dialogue-arrow" aria-hidden="true">▼</span></section>
-      <p class="data-note">网站实时查询 · 空闲时段仍须通过账号额度等校验 · 每 60 秒更新</p>
+      <p class="data-note">网站实时查询 · 空闲时段仍须通过账号额度等校验 · 当前场地每 60 秒更新</p>
     </main>
     <section id="automation-view" class="automation-view" hidden>
       <div class="auto-center">

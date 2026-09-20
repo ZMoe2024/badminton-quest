@@ -140,9 +140,17 @@ class Application:
             return {'courts': catalog(), 'fetchedAt': dt.datetime.now().isoformat(),
                     'account': username[:2] + '****' + username[-2:]}
         if action == 'availability':
+            if data.get('includeCatalog') is True: refresh(credentials)
             rows = [r for r in catalog() if r['group'] == data.get('group')]
+            if data.get('venue') is not None:
+                rows = [r for r in rows if r['infoId'] == data['venue']]
             if not rows: raise ValueError('未找到羽毛球场馆')
-            return fetch_availability(credentials, rows, data['date'])
+            result = fetch_availability(credentials, rows, data['date'])
+            username, _ = expected_identity(credentials)
+            result['account'] = username[:2] + '****' + username[-2:]
+            if data.get('includeCatalog') is True: result['catalog'] = catalog()
+            self.scheduler.note_health(status)
+            return result
         if action == 'records': return records(credentials, data['date'])
         if action in ('check', 'book'):
             cfg = data['config']; row, date, start, end = resolve(cfg)
