@@ -1,21 +1,24 @@
 """Multi-user website entrypoint. Run one server instance per data directory."""
 import argparse
 import base64
+import json
 import os
 from pathlib import Path
 import secrets
+import re
 import time
 from urllib.parse import urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
 from .web_accounts import Accounts
 from .web_workers import Workers
+from .web_rentals import Rentals, booking_config
 
 ROOT = Path(__file__).resolve().parent
 COOKIE = 'quest_session'
 PUBLIC = {'/app.js','/automation.js','/login.js','/style.css','/dashboard.css',
           '/assets/concept.png','/assets/gym.png'}
-REMOTE = {'/web.css','/web.js','/auth.js','/login-helper.zip'}
+REMOTE = {'/web.css','/web.js','/auth.js','/login-helper.zip','/rentals.js','/rentals.css'}
 ACTIONS = {'profile','save-profile','tasks','task-save','task-cancel','task-enable','orders',
            'save','session','renew','catalog','availability','records','check','book','order-status',
            'pay','import','login-status','login-cancel'}
@@ -43,9 +46,10 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
     if len(key) != 32: raise ValueError('服务器密钥格式不正确')
     accounts = Accounts(root/'accounts.sqlite3', max_users)
     workers = workers or Workers(root, key, accounts)
+    rentals = Rentals(accounts)
     app = Flask(__name__, static_folder=None)
     app.config.update(MAX_CONTENT_LENGTH=100000, QUEST_ORIGIN=origin)
-    app.extensions.update(quest_accounts=accounts, quest_workers=workers)
+    app.extensions.update(quest_accounts=accounts, quest_workers=workers, quest_rentals=rentals)
 
     @app.before_request
     def guard():
@@ -139,7 +143,7 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
         if not g.user:return redirect('/login')
         html=(ROOT/'gui/index.html').read_text(encoding='utf-8')
         html=html.replace('__LOCAL_TOKEN__',g.user['csrf']).replace('</head>',
-            '<meta name="quest-mode" content="web"><link rel="stylesheet" href="/web.css"><script src="/web.js" defer></script></head>')
+            '<meta name="quest-mode" content="web"><link rel="stylesheet" href="/web.css"><link rel="stylesheet" href="/rentals.css"><script src="/web.js" defer></script><script src="/rentals.js" defer></script></head>')
         return html.replace('LOCAL EDITION · v0.5','WEB EDITION · 0.8')
 
     @app.get('/api/bootstrap')
@@ -162,6 +166,63 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
             status,value=workers.call(uid,body)
             return jsonify(value),status
         except ValueError as exc:return jsonify(error=str(exc)),400
+
+    @app.get('/api/rentals')
+    def rental_snapshot():
+        return jsonify(rentals.snapshot(g.user['id']))
+
+    @app.post('/api/rentals/<operation>')
+    def rental_action(operation):
+        uid = g.user['id']
+        if not accounts.rate_limit('rentals:'+uid, maximum=30, seconds=60):
+            return jsonify(error='操作过于频繁，请稍候'),429
+        try:
+            body = data()
+            if operation == 'publish':
+                if body.get('authorized') is not True: raise ValueError('请先勾选授权声明')
+                status, result = workers.call(uid, {'action':'rental-ready'})
+                if status != 200 or result.get('ready') is not True:
+                    raise ValueError('请先在登录设置验证自己的学校会话并填写联系电话')
+                return jsonify(id=rentals.publish(uid, body))
+            field = 'offerId' if operation in ('revoke','slots','request') else 'id'
+            value = body.get(field)
+            if not isinstance(value, str) or not re.fullmatch('[0-9a-f]{24}', value):
+                raise ValueError('引用无效，请刷新页面')
+            if operation == 'revoke':
+                rentals.revoke(uid, value)
+                return jsonify(ok=True)
+            if operation == 'slots':
+                offer = rentals.live_offer(value)
+                config = booking_config({'venue':body.get('venue'), 'date':body.get('date'), 'start':'00:00','end':'23:59'}, check_time=False)
+                if config['venue'] not in json.loads(offer['courts']): raise ValueError('该场地不在授权范围内')
+                if not accounts.rate_limit('rental-query:'+offer['owner'], maximum=12, seconds=60):
+                    return jsonify(error='实时查询繁忙，请稍候'),429
+                status, result = workers.call(offer['owner'], {'action':'rental-slots','offerId':value,'config':config})
+                if status != 200: raise ValueError('暂时无法核实时段，请稍后刷新；未创建预约')
+                # Second allowlist at the cross-user boundary. Never forward error text.
+                clean = []
+                for slot in result.get('slots', []):
+                    if all(isinstance(slot.get(k),str) and re.fullmatch(r'\d{2}:\d{2}',slot[k]) for k in ('start','end')):
+                        clean.append({'start':slot['start'],'end':slot['end'],'available':slot.get('available') is True})
+                return jsonify(slots=clean)
+            if operation == 'request':
+                if not accounts.rate_limit('rental-create:'+uid, maximum=10, seconds=3600):
+                    return jsonify(error='本小时申请次数已达上限，请查看已有订单'),429
+                oid = rentals.request(uid, body)
+            elif operation in ('run','check'):
+                oid = value
+            else: return jsonify(error='不支持的操作'),400
+            order = rentals.get(oid, uid)
+            internal = 'rental-check' if operation == 'check' else 'rental-run'
+            # The owner is resolved from durable server state, never from a browser field.
+            # A worker timeout does not reset an order or cause a second mutation.
+            try:
+                status, _ = workers.call(order['owner'], {'action':internal,'id':oid})
+            except ValueError:
+                status = 503
+            return jsonify(order=rentals.public_order(oid, uid),
+                           notice='' if status == 200 else '后台暂未回应，请刷新原订单；不要重复下单')
+        except ValueError as exc: return jsonify(error=str(exc)),400
 
     @app.get('/<path:name>')
     def assets(name):

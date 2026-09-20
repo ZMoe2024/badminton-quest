@@ -19,7 +19,10 @@ def worker_main(connection, directory, key, database, uid, stop):
     from . import gui_server
     from .web_credentials import prepare_credentials
     from .web_accounts import Accounts
+    from .web_rentals import Rentals
+    from . import rental_worker
     accounts = Accounts(database)
+    rentals = Rentals(accounts)
 
     class UserApplication(gui_server.Application):
         def __init__(self):
@@ -34,6 +37,16 @@ def worker_main(connection, directory, key, database, uid, stop):
                 super().save_login(credentials, status)
 
         def action(self, data):
+            # Internal RPC only: deliberately excluded from public /api/action.
+            if data.get('action') == 'rental-ready':
+                rental_worker.ready(rentals, uid, self)
+                return {'ready': True}
+            if data.get('action') == 'rental-slots':
+                return rental_worker.slots(rentals, uid, self, data['offerId'], data['config'])
+            if data.get('action') in ('rental-run', 'rental-check'):
+                operation = rental_worker.execute if data['action'] == 'rental-run' else rental_worker.reconcile
+                operation(rentals, uid, self, data['id'])
+                return {'ok': True}
             if data.get('action') in ('login-start', 'login-input'):
                 raise ValueError('网页版使用手动导入会话，请在登录设置填写自己的凭据')
             if data.get('action') == 'import':

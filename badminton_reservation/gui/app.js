@@ -110,11 +110,13 @@ async function showView(view){
  if(S.busy)return;S.view=view;document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
  $('#explore-view').hidden=view!=='explore';$('#booking-panel').hidden=view!=='explore';$('#automation-view').hidden=view!=='automation';$('#secondary-view').hidden=view==='explore'||view==='automation';
  if(view==='automation'){window.AutomationUI.open();return;}
+ if(view==='rentals'&&window.RentalUI){$('#secondary-title').textContent='匿名租约';await task('正在读取匿名租约…',()=>window.RentalUI.open());return;}
  if(view==='explore'){if(!fresh())await task('刷新场地状态…',refreshLive);return;}
  const titles={records:'我的预约',orders:'订单记录',settings:'登录设置'};$('#secondary-title').textContent=titles[view];$('#secondary-content').innerHTML='<div class="empty">正在打开训练家手册…</div>';
  await task('正在读取'+titles[view]+'…',()=>loadSecondary());
 }
 async function loadSecondary(){
+ if(S.view==='rentals'&&window.RentalUI)return window.RentalUI.open();
  if(S.view==='records'){
   const d=await api('records',{date:S.date});
   $('#secondary-content').innerHTML=`<p class="records-intro">${e(dateLabel(S.date))} · 共 ${d.total} 条预约记录 · 来自学校网站</p><br><div class="record-list">${d.rows.map(r=>`<article class="record-card"><div><h3>${e(r.infoName)}</h3><p>${e(r.recordTimeStart)} — ${e(r.recordTimeEnd)}</p><p>预约编号 ${e(r.occupyId)}</p></div><div><span class="badge">${e(r.recordUseStatus)}</span><p>${r.feePayStatus==='0'?'未支付':'支付状态：'+e(r.feePayStatus)}</p></div></article>`).join('')||'<div class="empty">这一天还没有预约记录。去道馆看看吧！</div>'}</div>`;
