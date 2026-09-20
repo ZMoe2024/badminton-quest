@@ -4,6 +4,7 @@ import json
 import copy
 from concurrent.futures import ThreadPoolExecutor
 from .resm_api import ResourceAPI
+from .query_scope import borrow_client
 
 TZ = dt.timezone(dt.timedelta(hours=8))
 
@@ -86,8 +87,7 @@ def fetch_court(client, row, date, forced_ids=()):
 
 def fetch_availability(credentials, rows, date, *, max_workers=3):
     dt.date.fromisoformat(date)
-    client = ResourceAPI(credentials)
-    try:
+    with borrow_client(credentials, ResourceAPI) as client:
         forced = client.query('/hzsun-resm/res/aside/query')
         if not isinstance(forced, list): raise ValueError('网站特殊占用状态查询失败')
         count = min(3, max(1, int(max_workers)), max(1, len(rows)))
@@ -119,5 +119,3 @@ def fetch_availability(credentials, rows, date, *, max_workers=3):
         courts = [value for _, value in sorted(results)]
         return {'date': date, 'courts': courts, 'fetchedAt': dt.datetime.now(TZ).isoformat(),
                 'source': '学校预约网站', 'note': '空闲状态不代表账号一定符合预约次数等限制；提交由学校服务器最终校验。'}
-    finally:
-        client.close()

@@ -7,6 +7,7 @@ import requests
 from .ecn_client import ORIGIN
 from .resm_api import ResourceAPI, encode_business
 from .response import decode_result
+from .query_scope import borrow_client
 
 CAS_HOST = 'authserver.lzjtu.edu.cn'
 SERVICE = ORIGIN + '/static/cas.html'
@@ -95,8 +96,7 @@ def renew(inputs):
 
 
 def probe(inputs):
-    client = ResourceAPI(inputs)
-    try:
+    with borrow_client(inputs, ResourceAPI) as client:
         response = client.get('/hzsun-resm/msg/unReadCounts')
         result = decode_result(response.text)
         code = str(result.get('errCode')) if isinstance(result, dict) else None
@@ -109,8 +109,6 @@ def probe(inputs):
         if response.status_code == 401 or code == '401':
             return updated, False
         raise ValueError(f'会话检查未通过：HTTP {response.status_code}，业务码 {code}；不将网络或防护错误当作登录过期')
-    finally:
-        client.close()
 
 
 def ensure_session(inputs, force_renew=False):

@@ -6,6 +6,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 from .resm_api import ResourceAPI
+from .query_scope import borrow_client
 from .venue_catalog import DEFAULT_OUTPUT, TREE_QUERY, flatten, inspect_venue, read_credentials, save_json, select_resource
 
 CATALOG = DEFAULT_OUTPUT / 'badminton-courts.json'
@@ -25,12 +26,9 @@ def write_badminton(nodes):
 
 
 def refresh(credentials):
-    client = ResourceAPI(credentials)
-    try:
+    with borrow_client(credentials, ResourceAPI) as client:
         tree = client.post_query('/hzsun-resm/resourcetree/queryResourceTree', TREE_QUERY)
         return write_badminton(flatten(tree['resourceTreeVos']))
-    finally:
-        client.close()
 
 
 def main():

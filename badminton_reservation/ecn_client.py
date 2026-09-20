@@ -7,7 +7,6 @@ the Cookie header itself contains token=. No credentials are written by this cli
 from __future__ import annotations
 import argparse
 import base64
-import hashlib
 import json
 import sys
 from pathlib import Path
@@ -18,7 +17,7 @@ import requests
 from .ecn_bootstrap import BootstrapError, context_from_bootstrap
 from .ecn_parameter import ParameterGenerator
 from .fetch_bootstrap import fetch_bootstrap
-from .loader_templates import extract_templates
+from .loader_cache import PUBLIC_LOADERS
 
 ORIGIN = 'https://resm.lzjtu.edu.cn'
 
@@ -55,6 +54,7 @@ class BootstrapClient:
         self.generator = None
         self.parameter_name = None
         self.bootstrap_status = None
+        self.loader_url = None
 
     def bootstrap(self):
         document = fetch_bootstrap(self.credentials, self.session)
@@ -66,16 +66,18 @@ class BootstrapClient:
                    and urlsplit(url).path.endswith('.js')]
         if len(scripts) != 1:
             raise BootstrapError('无法唯一确定首页引用的防护脚本，需要核对页面结构')
-        response = self.session.get(scripts[0], timeout=25, allow_redirects=False)
-        self.loader_validation = {'status': response.status_code, 'bytes': len(response.content),
-                                  'sha256': hashlib.sha256(response.content).hexdigest(),
-                                  'lfSha256': hashlib.sha256(response.content.replace(b'\r\n', b'\n')).hexdigest(),
-                                  'contentType': response.headers.get('Content-Type')}
-        if response.status_code != 200:
-            raise BootstrapError('防护脚本读取失败，HTTP ' + str(response.status_code))
-        literals, version = extract_templates(response.content)
-        self.loader_validation.update(sourceSha256=version, templatesSource='current-http-response')
-        context = context_from_bootstrap(document['cd'], document['nsd'], literals=literals)
+        self.loader_url = scripts[0]
+        literals, self.loader_validation = PUBLIC_LOADERS.load(self.session, self.loader_url)
+        try:
+            context = context_from_bootstrap(document['cd'], document['nsd'], literals=literals)
+        except (ValueError, KeyError, IndexError, UnicodeError):
+            # A site may replace code at the same URL before cache expiry.
+            # Re-fetch code once, without replaying any business request.
+            PUBLIC_LOADERS.invalidate(self.loader_url)
+            if self.loader_validation['templatesSource'] == 'current-http-response':
+                raise
+            literals, self.loader_validation = PUBLIC_LOADERS.load(self.session, self.loader_url, force=True)
+            context = context_from_bootstrap(document['cd'], document['nsd'], literals=literals)
         self.generator = ParameterGenerator(context)
         self.parameter_name = context['parameterName']
         return self
@@ -95,7 +97,14 @@ class BootstrapClient:
                                     headers={'X-Access-Token': self.credentials['token'],
                                              'Referer': ORIGIN + '/', 'Accept': 'application/json, text/plain, */*'},
                                     timeout=25, allow_redirects=False)
+        self.note_response(response)
         return response
+
+    def note_response(self, response):
+        if response.status_code in (400, 412):
+            if self.loader_url:
+                PUBLIC_LOADERS.invalidate(self.loader_url)
+            self.generator = None
 
     def close(self):
         self.session.close()

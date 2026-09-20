@@ -44,6 +44,7 @@ class ResourceAPI(BootstrapClient):
             headers={'X-Access-Token': self.credentials['token'], 'Content-Type': 'application/json;charset=UTF-8',
                      'Accept': 'application/json, text/plain, */*', 'Referer': ORIGIN + '/', 'Origin': ORIGIN},
             timeout=30, allow_redirects=False)
+        self.note_response(response)
         return self.unpack(response)
 
     @staticmethod

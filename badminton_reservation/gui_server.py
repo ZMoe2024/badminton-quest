@@ -20,6 +20,7 @@ from .badminton_booking import resolve
 from .availability import fetch_availability, now_local
 from .workflow import authenticate, book, DEFAULT_SESSION, DEFAULT_CONFIG
 from .resm_api import ResourceAPI
+from .query_scope import read_scope, borrow_client
 from .payment import pay, DETAIL_PATH, resolve_order
 from .session import expected_identity
 from .automation import Scheduler
@@ -61,15 +62,13 @@ def read_order(key):
 
 def records(credentials, date):
     dt.date.fromisoformat(date)
-    c = ResourceAPI(credentials)
-    try:
+    with borrow_client(credentials, ResourceAPI) as c:
         params = {'limit': 100, 'offset': 1, 'searchStartTime': date + ' 00:00:00',
                   'searchEndTime': date + ' 23:59:59', 'recordStatus': '',
                   'orderByField': 'recordTimeStart,recordCreateDate,occupyId', 'orderByFlag': 'desc'}
         d = c.query('/hzsun-resm/subUseRecord/queryReservationRecord', params)
         keys = ('infoName', 'infoId', 'occupyId', 'recordTimeStart', 'recordTimeEnd', 'recordUseStatus', 'feePayStatus')
         return {'total': d['total'], 'rows': [{k: r.get(k) for k in keys} for r in d['rows']]}
-    finally: c.close()
 
 
 class Application:
@@ -92,6 +91,12 @@ class Application:
                 'version': __version__, 'application': 'badminton-quest'}
 
     def action(self, data):
+        if data.get('action') in ('availability', 'catalog', 'records'):
+            with read_scope():
+                return self._action(data)
+        return self._action(data)
+
+    def _action(self, data):
         action = data.get('action')
         if action == 'login-start': return self.browser_login.start()
         if action == 'login-status': return self.browser_login.snapshot()
