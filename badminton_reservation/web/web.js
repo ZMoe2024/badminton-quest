@@ -9,8 +9,7 @@ window.LoginUI.render=()=>renderLogin()
  .replace('id="school-login"','id="school-login" hidden')
  .replace('学校认证彻底失效时需重新登录。登录完成不会自动启用任务或付款。','Cookie 或 Token 失效后需重新导入。仅导入预约网站 Cookie 不能保证自动续期或无人值守。')
  .replace(/<details>[\s\S]*?<\/details>/,`<h3>本地登录一次，复制结果即可</h3>
- <div class="manual-actions"><a class="button primary compact" href="/login-helper.zip?v=1.1" download="badminton-quest-login-helper.zip">电脑提取脚本 v1.1</a><a class="button compact" href="https://github.com/ZMoe2024/badminton-quest/releases/tag/mobile-v0.1.0" target="_blank" rel="noopener">安卓 APK（测试版）</a><button class="button compact" id="show-helper-guide">使用教程</button></div>
- <p><strong>iPhone：</strong>先用 Windows 或 Mac 完成一次会话导入，再在手机登录同一个网站账号；不需要 Mac。学校会话失效且续期失败时，需要电脑重新导入。</p>
+ <div class="manual-actions"><a class="button primary compact" href="/login-helper.zip?v=1.1" download="badminton-quest-login-helper.zip">下载登录提取脚本 v1.1</a><button class="button compact" id="show-helper-guide">Windows / Mac 教程</button></div>
  <ol class="session-steps">
  <li>下载并完整解压。Windows 双击 <strong>Start-Windows.cmd</strong>；Mac 按教程在终端运行。</li>
  <li>在脚本打开的<strong>独立学校窗口</strong>完成登录，等终端提示「已提取并复制完整会话」。</li>
@@ -20,8 +19,6 @@ window.LoginUI.render=()=>renderLogin()
  <p><strong>Windows 10/11：</strong>完整解压 ZIP，双击 <code>Start-Windows.cmd</code>；也可在解压目录的 PowerShell 输入 <code>.\\Start-Windows.cmd</code>。</p>
  <p><strong>macOS：</strong>打开「终端」，输入 <code>zsh </code>（末尾有空格），把解压后的 <code>Start-macOS.command</code> 拖进终端，回车。或在解压目录输入 <code>zsh ./Start-macOS.command</code>。</p>
  <p>电脑需已安装 Chrome 或 Edge。首次运行自动准备运行环境，不用自行安装 Python 或 Node.js。Mac 支持 Intel / Apple Silicon 启动包，尚需实机验证。</p>
- <p><strong>Android 9+：</strong>安装 APK 后先登录本网站账号，再点底部「学校登录」。在学校窗口完成认证并返回预约首页，点「完成登录」→「填入网站」，最后核对账号并点「验证并保存」。学校是否接受手机内置浏览器仍需实机验证。</p>
- <p><strong>iPhone：</strong>暂不提供 iOS 安装包。用任意 Windows 或 Mac 电脑连接学校会话，再在 Safari 登录同一个羽球训练家账号即可使用。可以添加到主屏幕，但这不会让网页获得读取其他网站 Cookie 的权限。</p>
  <p><strong>先启动脚本，再在它打开的窗口登录。</strong>它只读取本次独立登录，不读取日常浏览器资料。默认包含本次统一认证 Cookie 用于尝试续期；更多选项见 ZIP 内 README。</p>
  <p>正常结束会关闭独立窗口并清理临时资料，最长等待 10 分钟；Ctrl+C 可取消。复制失败时从终端手动复制完整 JSON。脚本不上传数据、不预约、不付款；只把结果粘贴到你信任的网站。</p>
  <p>提取成功不等于服务器验证成功，学校会话也可能过期。手机用户可先在电脑连接，再登录同一网站账号使用。</p></details>
@@ -41,20 +38,6 @@ window.LoginUI.render=()=>renderLogin()
  .replace('不同电脑的任务不会自动同步。','不同设备登录同一网站账号即可查看。')
  .replace('你的本地冒险日志','你的冒险日志');
 function clearManual(){for(const id of ['manual-json','manual-complete-cookie','manual-cookie','manual-token','manual-user','manual-agent','manual-file']){const el=$('#'+id);if(el)el.value='';}}
-// Native helpers only stage user-approved data. The existing verification button
-// still performs validation and saving for the currently signed-in website account.
-window.QuestMobile={stage(text){
- if(S.busy||!S.courts.length||typeof text!=='string'||new Blob([text]).size>90000)return false;
- let data;try{data=JSON.parse(text);}catch{return false;}
- if(!data||typeof data!=='object'||Array.isArray(data)||!data.token||!data.currentUser)return false;
- showView('settings').then(()=>{
-  const field=$('#manual-json');if(!field)throw Error('登录设置尚未就绪，请再次点导入会话');
-  field.value=JSON.stringify(data,null,2);
-  $('#manual-feedback').textContent='已填入手机提取结果。请核对当前网站账号，再点「验证并保存」。';
-  field.scrollIntoView({block:'center',behavior:'smooth'});
- }).catch(error=>toast(error.message));
- return true;
-}};
 document.addEventListener('click',async event=>{
  const b=event.target.closest('button');if(!b)return;
  if(b.id==='manual-clear')clearManual();

@@ -8,12 +8,6 @@ dist/
 .quest-data/
 .web-venv/
 .web-test-data/
-mobile/android/.gradle/
-mobile/android/**/build/
-mobile/android/local.properties
-*.keystore
-*.jks
-*.p12
 *.sqlite3*
 master.key
 invite-code.txt
