@@ -65,7 +65,7 @@ document.addEventListener('click',async event=>{
    }else credentials={cookie:$('#manual-cookie').value,token:$('#manual-token').value,currentUser:$('#manual-user').value,userAgent:$('#manual-agent').value};
    await api('import',{credentials});clearManual();
    feedback.textContent='验证成功，已加密保存。可回到场地探索刷新。';
-   await sessionCheck();await window.LoginUI.open();
+   await window.LoginUI.open();
   }catch(exc){feedback.textContent=exc.message;}
   finally{buttons.forEach(x=>x.disabled=false);}
  }
@@ -85,5 +85,5 @@ window.addEventListener('DOMContentLoaded',async()=>{
  document.body.insertAdjacentHTML('beforeend',`<dialog id="password-dialog" class="pixel-panel"><form id="password-form"><h2>修改网站密码</h2><p>修改后所有设备需重新登录，已启用任务继续运行。</p><label>原密码<input name="old" type="password" autocomplete="current-password" required maxlength="128"></label><label>新密码<input name="new" type="password" autocomplete="new-password" required minlength="10" maxlength="128"></label><p id="password-error" role="alert"></p><div class="dialog-actions"><button type="button" class="button" id="password-close">取消</button><button class="button primary">保存并重新登录</button></div></form></dialog>`);
  $('#password-close').onclick=()=>$('#password-dialog').close();
  $('#password-form').onsubmit=async ev=>{ev.preventDefault();try{const r=await fetch('/api/password',{method:'POST',headers:{'Content-Type':'application/json','X-Local-Token':token},body:JSON.stringify(Object.fromEntries(new FormData(ev.target)))});const d=await r.json();if(!r.ok)throw Error(d.error);location.assign('/login');}catch(exc){$('#password-error').textContent=exc.message;}};
- try{const d=await(await fetch('/api/bootstrap')).json();$('#web-username').textContent=d.websiteUser||'网站账号';}catch{}
+ try{const d=await loadBootstrap();$('#web-username').textContent=d.websiteUser||'网站账号';}catch{}
 });

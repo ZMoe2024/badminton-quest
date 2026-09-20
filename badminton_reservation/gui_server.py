@@ -135,7 +135,10 @@ class Application:
             return {'authentication': status, 'account': username[:2] + '****' + username[-2:]}
         if action == 'catalog':
             refresh(credentials)
-            return {'courts': catalog(), 'fetchedAt': dt.datetime.now().isoformat()}
+            self.scheduler.note_health(status)
+            username, _ = expected_identity(credentials)
+            return {'courts': catalog(), 'fetchedAt': dt.datetime.now().isoformat(),
+                    'account': username[:2] + '****' + username[-2:]}
         if action == 'availability':
             rows = [r for r in catalog() if r['group'] == data.get('group')]
             if not rows: raise ValueError('未找到羽毛球场馆')

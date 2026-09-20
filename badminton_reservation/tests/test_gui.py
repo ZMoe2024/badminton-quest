@@ -49,6 +49,43 @@ class AvailabilityTests(unittest.TestCase):
         self.assertEqual(result['courts'][0]['slots'],[])
         self.assertIn('error',result['courts'][0])
 
+    def test_parallel_courts_keep_order_isolate_clients_and_bound_concurrency(self):
+        clients=[]
+        barrier=threading.Barrier(3)
+        lock=threading.Lock()
+        def new_client(credentials):
+            client=Mock();client.owner=None;client.query.return_value=['forced-court']
+            with lock: clients.append(client)
+            return client
+        def court(client, row, date, forced):
+            ident=threading.get_ident()
+            if client.owner is None:
+                client.owner=ident
+                barrier.wait(timeout=3)
+            self.assertEqual(client.owner, ident)
+            self.assertEqual(forced, ['forced-court'])
+            if row['infoId']=='court-4':raise ValueError('school unavailable')
+            return dict(row,slots=[{'available':False}])
+        rows=[{'infoId':f'court-{n}','name':str(n)} for n in range(10)]
+        with patch('badminton_reservation.availability.ResourceAPI',side_effect=new_client), \
+             patch('badminton_reservation.availability.fetch_court',side_effect=court):
+            result=fetch_availability({},rows,'2026-09-19',max_workers=100)
+        self.assertEqual(len(clients),3)
+        self.assertEqual([r['infoId'] for r in result['courts']],[r['infoId'] for r in rows])
+        self.assertEqual(result['courts'][4]['slots'],[])
+        self.assertIn('error',result['courts'][4])
+        self.assertEqual(len({c.owner for c in clients}),3)
+        for client in clients:client.close.assert_called_once()
+
+    def test_single_court_keeps_one_client_for_submission_checks(self):
+        client=Mock();client.query.return_value=[]
+        with patch('badminton_reservation.availability.ResourceAPI',return_value=client) as create, \
+             patch('badminton_reservation.availability.fetch_court',return_value={'slots':[]}) as fetch:
+            fetch_availability({},[{'infoId':'court','name':'court'}],'2026-09-19')
+        create.assert_called_once()
+        self.assertIs(fetch.call_args.args[0],client)
+        client.close.assert_called_once()
+
 
 class GUIBoundaryTests(unittest.TestCase):
     @classmethod

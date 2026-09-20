@@ -51,6 +51,24 @@ class WebsiteTests(unittest.TestCase):
             self.assertEqual(self.get(self.a,path).status_code,404)
         self.assertEqual(self.get(self.a,'/').status_code,302)
 
+    def test_only_public_assets_are_cached_and_revalidated(self):
+        with patch.object(self.accounts, 'session', side_effect=AssertionError('static asset queried accounts')):
+            image = self.get(self.a, '/assets/gym.png')
+            self.assertEqual(image.headers['Cache-Control'], 'public, max-age=3600')
+            script = self.get(self.a, '/app.js')
+            self.assertEqual(script.headers['Cache-Control'], 'public, no-cache')
+            cached = self.a.get('/app.js', base_url='https://quest.test',
+                                headers={'If-None-Match':script.headers['ETag']})
+            self.assertEqual(cached.status_code, 304)
+            self.assertFalse(cached.data)
+            image.close();script.close();cached.close()
+        self.assertEqual(self.get(self.a, '/login').headers['Cache-Control'], 'no-store')
+        self.assertEqual(self.get(self.a, '/api/bootstrap').headers['Cache-Control'], 'no-store')
+        self.register(self.a, 'cached-user')
+        for path in ['/', '/api/bootstrap']:
+            self.assertEqual(self.get(self.a, path).headers['Cache-Control'], 'no-store')
+        self.assertIn('app;dur=', self.get(self.a, '/healthz').headers['Server-Timing'])
+
     def test_users_are_isolated_and_cannot_choose_owner(self):
         ca=self.register(self.a,'alice');cb=self.register(self.b,'bobby')
         a=self.get(self.a,'/api/bootstrap').json['owner'];b=self.get(self.b,'/api/bootstrap').json['owner']

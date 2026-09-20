@@ -22,6 +22,12 @@ async function api(action,values={}){
  const response=await fetch('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-Local-Token':token},body:JSON.stringify({action,...values})});
  const data=await response.json();if(!response.ok||data.error)throw new Error(data.error||'请求失败');return data;
 }
+function loadBootstrap(){
+ if(!loadBootstrap.pending)loadBootstrap.pending=(async()=>{
+  const r=await fetch('/api/bootstrap');if(!r.ok)throw Error('服务暂时无法连接');return r.json();
+ })().catch(error=>{loadBootstrap.pending=null;throw error;});
+ return loadBootstrap.pending;
+}
 async function task(label,fn){if(S.busy){toast('当前操作尚未完成，请稍候。');return;}markBusy(true,label);try{return await fn();}catch(err){toast(err.message);message('道馆传来了消息',err.message);if(S.view!=='explore'&&$('#secondary-content').textContent.includes('正在打开训练家手册'))$('#secondary-content').innerHTML=`<div class="empty">${e(err.message)}<br>点击右上角刷新重试。</div>`;}finally{markBusy(false);}}
 function fresh(){return S.live && S.live.date===S.date && Date.now()-S.received<90000;}
 function currentData(){return S.live?.courts.find(c=>c.infoId===S.court?.infoId);}
@@ -120,10 +126,10 @@ async function loadSecondary(){
  }
 }
 async function boot(){
- art();try{const r=await fetch('/api/bootstrap');if(!r.ok)throw Error('本地服务无法连接');const d=await r.json();S.courts=d.courts;S.today=d.today;S.date=d.config.date<S.today?S.today:d.config.date;S.court=S.courts.find(c=>c.infoId===d.config.venue||c.name===d.config.venue)||S.courts[0];S.group=S.court.group;S.start=d.config.start;S.end=d.config.end;renderSelection();document.querySelectorAll('[data-group]').forEach(b=>{b.classList.toggle('active',b.dataset.group===S.group);b.setAttribute('aria-selected',b.dataset.group===S.group);});
+ art();try{const d=await loadBootstrap();S.courts=d.courts;S.today=d.today;S.date=d.config.date<S.today?S.today:d.config.date;S.court=S.courts.find(c=>c.infoId===d.config.venue||c.name===d.config.venue)||S.courts[0];S.group=S.court.group;S.start=d.config.start;S.end=d.config.end;renderSelection();document.querySelectorAll('[data-group]').forEach(b=>{b.classList.toggle('active',b.dataset.group===S.group);b.setAttribute('aria-selected',b.dataset.group===S.group);});
   window.dispatchEvent(new Event('catalog-ready'));
   if(!d.sessionStored){message('欢迎来到道馆','先登录自己的学校账号，并填写预约联系电话。');await showView('settings');return;}
-  await task('正在核对训练家通行证…',async()=>{try{await sessionCheck();}catch(err){$('#session-pill').textContent='● 连接待检查';$('#session-pill').style.color='var(--red)';$('#slots').innerHTML='<div class="empty">登录或连接未通过检查<br>请到「登录设置」核实</div>';$('#slot-source').textContent='状态未知';throw err;}const freshCatalog=await api('catalog');S.courts=freshCatalog.courts;S.court=S.courts.find(c=>c.infoId===S.court.infoId)||S.courts[0];S.group=S.court.group;await refreshLive();});
+  await task('正在核对通行证并更新场地目录…',async()=>{let freshCatalog;try{freshCatalog=await api('catalog');$('#session-pill').textContent=`● ${freshCatalog.account} 已连接`;$('#session-pill').style.color='var(--green)';}catch(err){$('#session-pill').textContent='● 连接待检查';$('#session-pill').style.color='var(--red)';$('#slots').innerHTML='<div class="empty">登录或连接未通过检查<br>请到「登录设置」核实</div>';$('#slot-source').textContent='状态未知';throw err;}S.courts=freshCatalog.courts;S.court=S.courts.find(c=>c.infoId===S.court.infoId)||S.courts[0];S.group=S.court.group;await refreshLive();});
  }catch(err){message('道馆暂时未连接',err.message);toast(err.message);}
  if(location.hash==='#automation'&&S.courts.length)showView('automation');
 }

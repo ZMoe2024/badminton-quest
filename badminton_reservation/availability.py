@@ -1,6 +1,8 @@
 """Read-only availability, using the same occupancy sources as the website."""
 import datetime as dt
 import json
+import copy
+from concurrent.futures import ThreadPoolExecutor
 from .resm_api import ResourceAPI
 
 TZ = dt.timezone(dt.timedelta(hours=8))
@@ -82,18 +84,39 @@ def fetch_court(client, row, date, forced_ids=()):
         groups, rules, ranges, date, info_id, forced=info_id in forced_ids)}
 
 
-def fetch_availability(credentials, rows, date):
+def fetch_availability(credentials, rows, date, *, max_workers=3):
     dt.date.fromisoformat(date)
     client = ResourceAPI(credentials)
     try:
         forced = client.query('/hzsun-resm/res/aside/query')
         if not isinstance(forced, list): raise ValueError('网站特殊占用状态查询失败')
-        courts = []
-        for row in rows:
-            try: courts.append(fetch_court(client, row, date, forced))
-            except Exception as exc:
-                courts.append({'infoId': row['infoId'], 'name': row['name'], 'slots': [],
-                               'error': str(exc) if isinstance(exc, ValueError) else '实时查询失败，请刷新后重试'})
+        count = min(3, max(1, int(max_workers)), max(1, len(rows)))
+
+        def batch(item):
+            number, entries = item
+            # Each lane owns its cookie jar and signing generator. Never share a
+            # requests.Session or mutate signing state from multiple threads.
+            lane = client if number == 0 else ResourceAPI(copy.deepcopy(credentials))
+            result = []
+            try:
+                for index, row in entries:
+                    try: value = fetch_court(lane, row, date, forced)
+                    except Exception as exc:
+                        value = {'infoId': row['infoId'], 'name': row['name'], 'slots': [],
+                                 'error': str(exc) if isinstance(exc, ValueError) else '实时查询失败，请刷新后重试'}
+                    result.append((index, value))
+                return result
+            finally:
+                if lane is not client: lane.close()
+
+        entries = list(enumerate(rows))
+        if count == 1:
+            results = batch((0, entries))
+        else:
+            with ThreadPoolExecutor(max_workers=count, thread_name_prefix='court-query') as pool:
+                batches = pool.map(batch, enumerate([entries[n::count] for n in range(count)]))
+                results = [entry for group in batches for entry in group]
+        courts = [value for _, value in sorted(results)]
         return {'date': date, 'courts': courts, 'fetchedAt': dt.datetime.now(TZ).isoformat(),
                 'source': '学校预约网站', 'note': '空闲状态不代表账号一定符合预约次数等限制；提交由学校服务器最终校验。'}
     finally:

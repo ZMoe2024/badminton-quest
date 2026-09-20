@@ -4,6 +4,7 @@ import base64
 import os
 from pathlib import Path
 import secrets
+import time
 from urllib.parse import urlsplit
 
 from flask import Flask, g, jsonify, redirect, request, send_from_directory
@@ -48,6 +49,7 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
 
     @app.before_request
     def guard():
+        g.request_started = time.perf_counter()
         # Railway probes use a different Host. Only this public, read-only path is exempt.
         if request.path == '/healthz' and request.method in ('GET', 'HEAD'):
             return None
@@ -55,6 +57,9 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
             return jsonify(error='访问地址不匹配，请使用部署时设置的网址'), 400
         if request.method == 'POST' and request.headers.get('Origin') != origin:
             return jsonify(error='请求来源校验失败'), 403
+        # Public assets contain no account data and need no session DB lookup.
+        if request.method in ('GET', 'HEAD') and request.path in PUBLIC | REMOTE:
+            return None
         g.user = accounts.session(request.cookies.get(COOKIE,''))
         if request.path.startswith('/api/'):
             if not g.user: return jsonify(error='网站登录已过期，请重新登录'), 401
@@ -63,7 +68,12 @@ def create_app(root, origin, *, workers=None, max_users=0, allow_insecure=False)
 
     @app.after_request
     def headers(response):
-        response.headers['Cache-Control'] = 'no-store'
+        if request.method in ('GET', 'HEAD') and request.path in PUBLIC | REMOTE and response.status_code in (200, 304):
+            response.headers['Cache-Control'] = ('public, max-age=3600' if request.path.startswith('/assets/')
+                                                 else 'public, no-cache')
+        else:
+            response.headers['Cache-Control'] = 'no-store'
+        response.headers['Server-Timing'] = f'app;dur={(time.perf_counter()-g.request_started)*1000:.1f}'
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'no-referrer'
         response.headers['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
